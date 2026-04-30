@@ -24,14 +24,13 @@ export async function GET(request) {
     // Leer empresas
     const empresasRes = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'Empresas!A:E',
+      range: 'Empresas!A:G',
     });
 
     const empresas = empresasRes.data.values || [];
     const headers = empresas[0];
     const rows = empresas.slice(1);
 
-    // Buscar empresa por slug (form_id)
     const empresa = rows.find(row => {
       const formId = row[headers.indexOf('form_id')] || '';
       const nombre = (row[headers.indexOf('nombre_negocio')] || '').toLowerCase().replace(/\s+/g, '-');
@@ -45,23 +44,29 @@ export async function GET(request) {
     const formId = empresa[headers.indexOf('form_id')];
     const nombreNegocio = empresa[headers.indexOf('nombre_negocio')];
 
-    // Leer especialistas
+    // Leer especialistas — ahora incluye columna sucursal (G)
     const espRes = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'Especialistas!A:F',
+      range: 'Especialistas!A:G',
     });
 
     const espRows = espRes.data.values || [];
     const espHeaders = espRows[0];
+
     const especialistas = espRows.slice(1)
       .filter(row => (row[espHeaders.indexOf('form_id')] || '') === formId)
       .map(row => ({
-        nombre: row[espHeaders.indexOf('nombre_especialista')],
-        calendar_id: row[espHeaders.indexOf('calendar_id')],
+        nombre: row[espHeaders.indexOf('nombre_especialista')] || '',
+        calendar_id: row[espHeaders.indexOf('calendar_id')] || '',
         hora_inicio: row[espHeaders.indexOf('hora_inicio')] || '09:00',
         hora_fin: row[espHeaders.indexOf('hora_fin')] || '18:00',
         dias_trabajo: (row[espHeaders.indexOf('dias_trabajo')] || '').split(',').map(d => d.trim()),
+        sucursal: row[espHeaders.indexOf('sucursal')] || 'Principal',
       }));
+
+    // Extraer sucursales únicas — mantener orden de aparición
+    const sucursalesUnicas = [...new Set(especialistas.map(e => e.sucursal))];
+    const tieneSucursales = sucursalesUnicas.length > 1;
 
     // Leer servicios
     const servRes = await sheets.spreadsheets.values.get({
@@ -74,12 +79,19 @@ export async function GET(request) {
     const servicios = servRows.slice(1)
       .filter(row => (row[servHeaders.indexOf('form_id')] || '') === formId)
       .map(row => ({
-        nombre: row[servHeaders.indexOf('nombre_servicio')],
-        precio: row[servHeaders.indexOf('precio')],
+        nombre: row[servHeaders.indexOf('nombre_servicio')] || '',
+        precio: row[servHeaders.indexOf('precio')] || '0',
         duracion: parseInt(row[servHeaders.indexOf('duracion_min')] || '60'),
       }));
 
-    return NextResponse.json({ nombreNegocio, formId, especialistas, servicios });
+    return NextResponse.json({
+      nombreNegocio,
+      formId,
+      especialistas,
+      servicios,
+      sucursales: sucursalesUnicas,
+      tieneSucursales,
+    });
 
   } catch (error) {
     console.error('Error leyendo config:', error);

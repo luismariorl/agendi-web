@@ -9,6 +9,8 @@ export default function ReservaPage({ params }) {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const [sucursal, setSucursal] = useState(null);
   const [servicio, setServicio] = useState(null);
   const [especialista, setEspecialista] = useState(null);
   const [fecha, setFecha] = useState('');
@@ -22,25 +24,32 @@ export default function ReservaPage({ params }) {
   const [enviando, setEnviando] = useState(false);
   const [confirmado, setConfirmado] = useState(false);
 
-  // Cargar config del negocio
   useEffect(() => {
     fetch(`/api/config?slug=${slug}`)
       .then(r => r.json())
       .then(data => {
-        if (data.error) setError(data.error);
-        else {
-          setConfig(data);
-          // Si solo hay 1 especialista, seleccionarlo automáticamente
-          if (data.especialistas?.length === 1) {
-            setEspecialista(data.especialistas[0]);
-          }
+        if (data.error) { setError(data.error); setLoading(false); return; }
+        setConfig(data);
+        // Si solo hay 1 sucursal, seleccionarla automáticamente
+        if (!data.tieneSucursales) {
+          setSucursal(data.sucursales[0]);
+        }
+        // Si solo hay 1 especialista total, seleccionarlo automáticamente
+        if (data.especialistas?.length === 1) {
+          setEspecialista(data.especialistas[0]);
         }
         setLoading(false);
       })
       .catch(() => { setError('Error cargando el negocio'); setLoading(false); });
   }, [slug]);
 
-  // Cargar slots cuando cambia fecha o especialista
+  // Especialistas filtrados por sucursal seleccionada
+  const especialistasDeSucursal = config?.especialistas?.filter(
+    e => !sucursal || e.sucursal === sucursal
+  ) || [];
+
+  const soloUnEspecialista = especialistasDeSucursal.length === 1;
+
   useEffect(() => {
     if (!fecha || !especialista || !servicio) return;
 
@@ -62,76 +71,75 @@ export default function ReservaPage({ params }) {
     fetch(url)
       .then(r => r.json())
       .then(data => {
-        if (data.error) {
-          setErrorSlots('Error consultando disponibilidad: ' + data.error);
-          setSlots([]);
-        } else {
+        if (data.error) { setErrorSlots('Error consultando disponibilidad: ' + data.error); setSlots([]); }
+        else {
           setSlots(data.slots || []);
-          if ((data.slots || []).length === 0) {
-            setErrorSlots('No hay horarios disponibles para este día.');
-          }
+          if ((data.slots || []).length === 0) setErrorSlots('No hay horarios disponibles para este día.');
         }
         setLoadingSlots(false);
       })
-      .catch(() => {
-        setErrorSlots('Error de conexión al consultar disponibilidad.');
-        setSlots([]);
-        setLoadingSlots(false);
-      });
+      .catch(() => { setErrorSlots('Error de conexión.'); setSlots([]); setLoadingSlots(false); });
   }, [fecha, especialista, servicio]);
+
+  // Auto-seleccionar especialista cuando cambia la sucursal y hay solo 1
+  useEffect(() => {
+    if (especialistasDeSucursal.length === 1) {
+      setEspecialista(especialistasDeSucursal[0]);
+    } else {
+      setEspecialista(null);
+    }
+    setSlots([]);
+    setErrorSlots(null);
+    setHoraSeleccionada(null);
+    setFecha('');
+  }, [sucursal]);
 
   const handleConfirmar = async () => {
     if (!nombre || !telefono) return;
     setEnviando(true);
     try {
-      const payload = {
-        formId: config.formId,
-        nombre, telefono, notas,
-        servicio: `${servicio.nombre} — S/ ${servicio.precio}`,
-        especialista: especialista.nombre,
-        fecha,
-        hora: horaSeleccionada.horaDisplay,
-        hora24: horaSeleccionada.hora24,
-        duracion: servicio.duracion,
-      };
-
       const res = await fetch('/api/reservar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          formId: config.formId,
+          nombre, telefono, notas,
+          servicio: `${servicio.nombre} — S/ ${servicio.precio}`,
+          especialista: especialista.nombre,
+          sucursal: sucursal || 'Principal',
+          fecha,
+          hora: horaSeleccionada.horaDisplay,
+          hora24: horaSeleccionada.hora24,
+          duracion: servicio.duracion,
+        }),
       });
       const data = await res.json();
       if (data.success) setConfirmado(true);
       else alert('Error al enviar la reserva: ' + (data.error || 'Intenta de nuevo.'));
-    } catch {
-      alert('Error de conexión. Intenta de nuevo.');
-    }
+    } catch { alert('Error de conexión. Intenta de nuevo.'); }
     setEnviando(false);
   };
 
-  // Determinar si tiene solo 1 especialista
-  const soloUnEspecialista = config?.especialistas?.length === 1;
+  // Calcular pasos totales
+  const tieneSucursales = config?.tieneSucursales;
+  const totalPasos = (tieneSucursales ? 1 : 0) + 1 + (!soloUnEspecialista ? 1 : 0) + 1 + 1;
 
-  // Total de pasos: 3 si hay 1 especialista (sin paso de elegir especialista), 4 si hay más
-  const totalPasos = soloUnEspecialista ? 3 : 4;
-  const labelsPasos = soloUnEspecialista
-    ? ['Servicio', 'Fecha', 'Horario', 'Tus datos']
-    : ['Servicio', 'Especialista y fecha', 'Horario', 'Tus datos'];
+  // Labels de pasos dinámicos
+  const labelsBase = [];
+  if (tieneSucursales) labelsBase.push('Sucursal');
+  labelsBase.push('Servicio');
+  if (!soloUnEspecialista) labelsBase.push('Especialista y fecha');
+  else labelsBase.push('Fecha');
+  labelsBase.push('Horario');
+  labelsBase.push('Tus datos');
 
   const hoy = new Date().toISOString().split('T')[0];
 
-  if (loading) return (
-    <div style={s.center}>
-      <div style={s.spinner}></div>
-      <p style={s.muted}>Cargando...</p>
-    </div>
-  );
+  // Calcular paso real según si hay sucursales
+  const pasoBase = tieneSucursales ? paso : paso + 1;
 
-  if (error) return (
-    <div style={s.center}>
-      <p style={{ color: '#991B1B' }}>❌ {error}</p>
-    </div>
-  );
+  if (loading) return <div style={s.center}><div style={s.spinner}></div><p style={s.muted}>Cargando...</p></div>;
+  if (error) return <div style={s.center}><p style={{ color: '#991B1B' }}>❌ {error}</p></div>;
 
   if (confirmado) return (
     <div style={s.center}>
@@ -140,7 +148,7 @@ export default function ReservaPage({ params }) {
         <h2 style={{ fontSize: 22, fontWeight: 600, color: '#1A1834', margin: '0 0 8px' }}>¡Reserva confirmada!</h2>
         <p style={{ fontSize: 15, color: '#6B69A0', margin: '0 0 20px' }}>Recibirás un WhatsApp con los detalles.</p>
         <div style={s.resumen}>
-          <p><strong>{config.nombreNegocio}</strong></p>
+          <p><strong>{config.nombreNegocio}</strong>{sucursal && config.tieneSucursales ? ` — ${sucursal}` : ''}</p>
           <p>{servicio.nombre} con {especialista.nombre}</p>
           <p>{fecha} · {horaSeleccionada.horaDisplay}</p>
         </div>
@@ -155,29 +163,48 @@ export default function ReservaPage({ params }) {
         <p style={s.headerSub}>Reserva tu cita en segundos</p>
       </div>
 
-      {/* Barra de progreso — ajustada según total de pasos */}
       <div style={s.progressWrap}>
-        {Array.from({ length: totalPasos }, (_, i) => i + 1).map(n => (
-          <div key={n} style={{ ...s.progressStep, background: paso >= n ? '#534AB7' : '#E2E1F5' }} />
+        {labelsBase.map((_, i) => (
+          <div key={i} style={{ ...s.progressStep, background: paso > i ? '#534AB7' : '#E2E1F5' }} />
         ))}
       </div>
       <p style={{ textAlign: 'center', fontSize: 13, color: '#6B69A0', margin: '8px 0 0' }}>
-        Paso {paso} de {totalPasos} — {labelsPasos[paso - 1]}
+        Paso {paso} de {labelsBase.length} — {labelsBase[paso - 1]}
       </p>
 
       <div style={s.card}>
 
-        {/* PASO 1 — Servicio (siempre igual) */}
-        {paso === 1 && (
+        {/* PASO SUCURSAL — solo si hay más de 1 */}
+        {tieneSucursales && paso === 1 && (
+          <div>
+            <h2 style={s.stepTitle}>¿A qué sucursal quieres ir?</h2>
+            <div style={s.list}>
+              {config.sucursales.map(suc => (
+                <div key={suc}
+                  onClick={() => { setSucursal(suc); setPaso(2); }}
+                  style={{ ...s.option, borderColor: sucursal === suc ? '#534AB7' : '#E2E1F5', background: sucursal === suc ? '#EEEDFE' : 'white' }}>
+                  <div style={{ fontSize: 20 }}>📍</div>
+                  <div style={s.optName}>{suc}</div>
+                  {sucursal === suc && <span style={{ marginLeft: 'auto', color: '#534AB7', fontWeight: 700 }}>✓</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* PASO SERVICIO */}
+        {pasoBase === 2 && (
           <div>
             <h2 style={s.stepTitle}>¿Qué servicio deseas?</h2>
+            {tieneSucursales && sucursal && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, fontSize: 13, color: '#6B69A0' }}>
+                <span>📍</span><span>{sucursal}</span>
+              </div>
+            )}
             <div style={s.list}>
               {config.servicios.map(sv => (
                 <div key={sv.nombre}
-                  onClick={() => {
-                    setServicio(sv);
-                    setPaso(2);
-                  }}
+                  onClick={() => { setServicio(sv); setPaso(paso + 1); }}
                   style={{ ...s.option, borderColor: servicio?.nombre === sv.nombre ? '#534AB7' : '#E2E1F5', background: servicio?.nombre === sv.nombre ? '#EEEDFE' : 'white' }}>
                   <div>
                     <div style={s.optName}>{sv.nombre}</div>
@@ -187,22 +214,20 @@ export default function ReservaPage({ params }) {
                 </div>
               ))}
             </div>
+            {tieneSucursales && <button onClick={() => setPaso(1)} style={s.btnBack}>← Volver</button>}
           </div>
         )}
 
-        {/* PASO 2 — Especialista + fecha (si hay varios) O solo fecha (si hay 1) */}
-        {paso === 2 && (
+        {/* PASO ESPECIALISTA + FECHA */}
+        {pasoBase === 3 && (
           <div>
-            <h2 style={s.stepTitle}>
-              {soloUnEspecialista ? '¿Qué día prefieres?' : '¿Con quién y cuándo?'}
-            </h2>
+            <h2 style={s.stepTitle}>{soloUnEspecialista ? '¿Qué día prefieres?' : '¿Con quién y cuándo?'}</h2>
 
-            {/* Solo mostrar lista de especialistas si hay más de 1 */}
             {!soloUnEspecialista && (
               <>
                 <p style={s.label}>Especialista</p>
                 <div style={s.list}>
-                  {config.especialistas.map(e => (
+                  {especialistasDeSucursal.map(e => (
                     <div key={e.nombre}
                       onClick={() => { setEspecialista(e); setSlots([]); setErrorSlots(null); setHoraSeleccionada(null); }}
                       style={{ ...s.option, borderColor: especialista?.nombre === e.nombre ? '#534AB7' : '#E2E1F5', background: especialista?.nombre === e.nombre ? '#EEEDFE' : 'white' }}>
@@ -215,8 +240,7 @@ export default function ReservaPage({ params }) {
               </>
             )}
 
-            {/* Si hay 1 especialista, mostrar su nombre como info */}
-            {soloUnEspecialista && (
+            {soloUnEspecialista && especialista && (
               <div style={{ background: '#EEEDFE', borderRadius: 12, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={s.avatar}>{especialista.nombre[0]}</div>
                 <div>
@@ -231,46 +255,23 @@ export default function ReservaPage({ params }) {
               onChange={e => { setFecha(e.target.value); setSlots([]); setErrorSlots(null); setHoraSeleccionada(null); }}
               style={s.input} />
 
-            {!soloUnEspecialista && especialista && fecha && (
-              <p style={{ fontSize: 12, color: '#6B69A0', marginTop: 8 }}>
-                Horario de {especialista.nombre}: {especialista.hora_inicio} — {especialista.hora_fin} · {especialista.dias_trabajo.join(', ')}
-              </p>
-            )}
-
-            <button
-              onClick={() => setPaso(3)}
-              disabled={!especialista || !fecha}
+            <button onClick={() => setPaso(paso + 1)} disabled={!especialista || !fecha}
               style={{ ...s.btn, opacity: (!especialista || !fecha) ? 0.5 : 1 }}>
               Ver horarios disponibles →
             </button>
-            <button onClick={() => setPaso(1)} style={s.btnBack}>← Volver</button>
+            <button onClick={() => setPaso(paso - 1)} style={s.btnBack}>← Volver</button>
           </div>
         )}
 
-        {/* PASO 3 — Slots */}
-        {paso === 3 && (
+        {/* PASO SLOTS */}
+        {pasoBase === 4 && (
           <div>
             <h2 style={s.stepTitle}>Elige tu horario</h2>
-            <p style={{ fontSize: 14, color: '#6B69A0', margin: '0 0 20px' }}>
-              {especialista.nombre} · {fecha}
-            </p>
+            <p style={{ fontSize: 14, color: '#6B69A0', margin: '0 0 20px' }}>{especialista.nombre} · {fecha}</p>
 
-            {loadingSlots && (
-              <div style={s.center}>
-                <div style={s.spinner}></div>
-                <p style={s.muted}>Consultando disponibilidad...</p>
-              </div>
-            )}
-
-            {!loadingSlots && errorSlots && (
-              <p style={{ color: '#991B1B', fontSize: 14, textAlign: 'center', padding: '16px 0' }}>⚠️ {errorSlots}</p>
-            )}
-
-            {!loadingSlots && !errorSlots && slots.length === 0 && (
-              <p style={{ color: '#6B69A0', fontSize: 14, textAlign: 'center', padding: '24px 0' }}>
-                No hay horarios disponibles. Prueba otra fecha.
-              </p>
-            )}
+            {loadingSlots && <div style={s.center}><div style={s.spinner}></div><p style={s.muted}>Consultando disponibilidad...</p></div>}
+            {!loadingSlots && errorSlots && <p style={{ color: '#991B1B', fontSize: 14, textAlign: 'center', padding: '16px 0' }}>⚠️ {errorSlots}</p>}
+            {!loadingSlots && !errorSlots && slots.length === 0 && <p style={{ color: '#6B69A0', fontSize: 14, textAlign: 'center', padding: '24px 0' }}>No hay horarios disponibles. Prueba otra fecha.</p>}
 
             {!loadingSlots && slots.length > 0 && (
               <div style={s.slotsGrid}>
@@ -291,38 +292,35 @@ export default function ReservaPage({ params }) {
               </div>
             )}
 
-            <button onClick={() => setPaso(4)} disabled={!horaSeleccionada}
+            <button onClick={() => setPaso(paso + 1)} disabled={!horaSeleccionada}
               style={{ ...s.btn, opacity: !horaSeleccionada ? 0.5 : 1 }}>
               Continuar →
             </button>
-            <button onClick={() => setPaso(2)} style={s.btnBack}>← Volver</button>
+            <button onClick={() => setPaso(paso - 1)} style={s.btnBack}>← Volver</button>
           </div>
         )}
 
-        {/* PASO 4 — Datos del cliente */}
-        {paso === 4 && (
+        {/* PASO DATOS */}
+        {pasoBase === 5 && (
           <div>
             <h2 style={s.stepTitle}>Tus datos</h2>
             <div style={s.resumen}>
+              {config.tieneSucursales && <p>📍 {sucursal}</p>}
               <p>💅 {servicio.nombre}</p>
               <p>👩 {especialista.nombre}</p>
               <p>📅 {fecha} · {horaSeleccionada.horaDisplay}</p>
             </div>
             <p style={s.label}>Nombre completo *</p>
-            <input type="text" placeholder="Ej: María López" value={nombre}
-              onChange={e => setNombre(e.target.value)} style={s.input} />
+            <input type="text" placeholder="Ej: María López" value={nombre} onChange={e => setNombre(e.target.value)} style={s.input} />
             <p style={s.label}>WhatsApp *</p>
-            <input type="tel" placeholder="Ej: 987654321" value={telefono}
-              onChange={e => setTelefono(e.target.value)} style={s.input} />
+            <input type="tel" placeholder="Ej: 987654321" value={telefono} onChange={e => setTelefono(e.target.value)} style={s.input} />
             <p style={s.label}>Notas (opcional)</p>
-            <textarea placeholder="Ej: Quiero uñas en rojo" value={notas}
-              onChange={e => setNotas(e.target.value)}
-              style={{ ...s.input, height: 80, resize: 'vertical' }} />
+            <textarea placeholder="Ej: Quiero uñas en rojo" value={notas} onChange={e => setNotas(e.target.value)} style={{ ...s.input, height: 80, resize: 'vertical' }} />
             <button onClick={handleConfirmar} disabled={!nombre || !telefono || enviando}
               style={{ ...s.btn, opacity: (!nombre || !telefono) ? 0.5 : 1 }}>
               {enviando ? 'Enviando...' : 'Confirmar reserva ✓'}
             </button>
-            <button onClick={() => setPaso(3)} style={s.btnBack}>← Volver</button>
+            <button onClick={() => setPaso(paso - 1)} style={s.btnBack}>← Volver</button>
           </div>
         )}
       </div>
@@ -330,11 +328,7 @@ export default function ReservaPage({ params }) {
       <p style={{ textAlign: 'center', fontSize: 12, color: '#9896C8', marginTop: 24 }}>
         Powered by <strong>Agendi</strong> · agendi.pe
       </p>
-
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        * { box-sizing: border-box; }
-      `}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } } * { box-sizing: border-box; }`}</style>
     </div>
   );
 }
