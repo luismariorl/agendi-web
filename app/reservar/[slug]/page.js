@@ -22,17 +22,25 @@ export default function ReservaPage({ params }) {
   const [enviando, setEnviando] = useState(false);
   const [confirmado, setConfirmado] = useState(false);
 
+  // Cargar config del negocio
   useEffect(() => {
     fetch(`/api/config?slug=${slug}`)
       .then(r => r.json())
       .then(data => {
         if (data.error) setError(data.error);
-        else setConfig(data);
+        else {
+          setConfig(data);
+          // Si solo hay 1 especialista, seleccionarlo automáticamente
+          if (data.especialistas?.length === 1) {
+            setEspecialista(data.especialistas[0]);
+          }
+        }
         setLoading(false);
       })
       .catch(() => { setError('Error cargando el negocio'); setLoading(false); });
   }, [slug]);
 
+  // Cargar slots cuando cambia fecha o especialista
   useEffect(() => {
     if (!fecha || !especialista || !servicio) return;
 
@@ -50,13 +58,10 @@ export default function ReservaPage({ params }) {
     setHoraSeleccionada(null);
 
     const url = `/api/slots?calendarId=${encodeURIComponent(especialista.calendar_id)}&fecha=${fecha}&duracion=${servicio.duracion || 60}&horaInicio=${especialista.hora_inicio}&horaFin=${especialista.hora_fin}`;
-    
-    console.log('Consultando slots:', url);
 
     fetch(url)
       .then(r => r.json())
       .then(data => {
-        console.log('Slots recibidos:', data);
         if (data.error) {
           setErrorSlots('Error consultando disponibilidad: ' + data.error);
           setSlots([]);
@@ -68,8 +73,7 @@ export default function ReservaPage({ params }) {
         }
         setLoadingSlots(false);
       })
-      .catch(err => {
-        console.error('Error fetch slots:', err);
+      .catch(() => {
         setErrorSlots('Error de conexión al consultar disponibilidad.');
         setSlots([]);
         setLoadingSlots(false);
@@ -82,9 +86,7 @@ export default function ReservaPage({ params }) {
     try {
       const payload = {
         formId: config.formId,
-        nombre,
-        telefono,
-        notas,
+        nombre, telefono, notas,
         servicio: `${servicio.nombre} — S/ ${servicio.precio}`,
         especialista: especialista.nombre,
         fecha,
@@ -92,7 +94,6 @@ export default function ReservaPage({ params }) {
         hora24: horaSeleccionada.hora24,
         duracion: servicio.duracion,
       };
-      console.log('Enviando reserva:', payload);
 
       const res = await fetch('/api/reservar', {
         method: 'POST',
@@ -100,15 +101,22 @@ export default function ReservaPage({ params }) {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      console.log('Respuesta reserva:', data);
       if (data.success) setConfirmado(true);
       else alert('Error al enviar la reserva: ' + (data.error || 'Intenta de nuevo.'));
-    } catch (err) {
-      console.error('Error confirmando:', err);
+    } catch {
       alert('Error de conexión. Intenta de nuevo.');
     }
     setEnviando(false);
   };
+
+  // Determinar si tiene solo 1 especialista
+  const soloUnEspecialista = config?.especialistas?.length === 1;
+
+  // Total de pasos: 3 si hay 1 especialista (sin paso de elegir especialista), 4 si hay más
+  const totalPasos = soloUnEspecialista ? 3 : 4;
+  const labelsPasos = soloUnEspecialista
+    ? ['Servicio', 'Fecha', 'Horario', 'Tus datos']
+    : ['Servicio', 'Especialista y fecha', 'Horario', 'Tus datos'];
 
   const hoy = new Date().toISOString().split('T')[0];
 
@@ -147,24 +155,29 @@ export default function ReservaPage({ params }) {
         <p style={s.headerSub}>Reserva tu cita en segundos</p>
       </div>
 
+      {/* Barra de progreso — ajustada según total de pasos */}
       <div style={s.progressWrap}>
-        {[1,2,3,4].map(n => (
+        {Array.from({ length: totalPasos }, (_, i) => i + 1).map(n => (
           <div key={n} style={{ ...s.progressStep, background: paso >= n ? '#534AB7' : '#E2E1F5' }} />
         ))}
       </div>
       <p style={{ textAlign: 'center', fontSize: 13, color: '#6B69A0', margin: '8px 0 0' }}>
-        Paso {paso} de 4 — {['Servicio','Especialista y fecha','Horario','Tus datos'][paso-1]}
+        Paso {paso} de {totalPasos} — {labelsPasos[paso - 1]}
       </p>
 
       <div style={s.card}>
 
+        {/* PASO 1 — Servicio (siempre igual) */}
         {paso === 1 && (
           <div>
             <h2 style={s.stepTitle}>¿Qué servicio deseas?</h2>
             <div style={s.list}>
               {config.servicios.map(sv => (
                 <div key={sv.nombre}
-                  onClick={() => { setServicio(sv); setPaso(2); }}
+                  onClick={() => {
+                    setServicio(sv);
+                    setPaso(2);
+                  }}
                   style={{ ...s.option, borderColor: servicio?.nombre === sv.nombre ? '#534AB7' : '#E2E1F5', background: servicio?.nombre === sv.nombre ? '#EEEDFE' : 'white' }}>
                   <div>
                     <div style={s.optName}>{sv.nombre}</div>
@@ -177,31 +190,56 @@ export default function ReservaPage({ params }) {
           </div>
         )}
 
+        {/* PASO 2 — Especialista + fecha (si hay varios) O solo fecha (si hay 1) */}
         {paso === 2 && (
           <div>
-            <h2 style={s.stepTitle}>¿Con quién y cuándo?</h2>
-            <p style={s.label}>Especialista</p>
-            <div style={s.list}>
-              {config.especialistas.map(e => (
-                <div key={e.nombre}
-                  onClick={() => { setEspecialista(e); setSlots([]); setErrorSlots(null); setHoraSeleccionada(null); }}
-                  style={{ ...s.option, borderColor: especialista?.nombre === e.nombre ? '#534AB7' : '#E2E1F5', background: especialista?.nombre === e.nombre ? '#EEEDFE' : 'white' }}>
-                  <div style={s.avatar}>{e.nombre[0]}</div>
-                  <div style={s.optName}>{e.nombre}</div>
-                  {especialista?.nombre === e.nombre && <span style={{ marginLeft: 'auto', color: '#534AB7', fontWeight: 700 }}>✓</span>}
+            <h2 style={s.stepTitle}>
+              {soloUnEspecialista ? '¿Qué día prefieres?' : '¿Con quién y cuándo?'}
+            </h2>
+
+            {/* Solo mostrar lista de especialistas si hay más de 1 */}
+            {!soloUnEspecialista && (
+              <>
+                <p style={s.label}>Especialista</p>
+                <div style={s.list}>
+                  {config.especialistas.map(e => (
+                    <div key={e.nombre}
+                      onClick={() => { setEspecialista(e); setSlots([]); setErrorSlots(null); setHoraSeleccionada(null); }}
+                      style={{ ...s.option, borderColor: especialista?.nombre === e.nombre ? '#534AB7' : '#E2E1F5', background: especialista?.nombre === e.nombre ? '#EEEDFE' : 'white' }}>
+                      <div style={s.avatar}>{e.nombre[0]}</div>
+                      <div style={s.optName}>{e.nombre}</div>
+                      {especialista?.nombre === e.nombre && <span style={{ marginLeft: 'auto', color: '#534AB7', fontWeight: 700 }}>✓</span>}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            )}
+
+            {/* Si hay 1 especialista, mostrar su nombre como info */}
+            {soloUnEspecialista && (
+              <div style={{ background: '#EEEDFE', borderRadius: 12, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={s.avatar}>{especialista.nombre[0]}</div>
+                <div>
+                  <div style={s.optName}>{especialista.nombre}</div>
+                  <div style={s.muted}>{especialista.hora_inicio} — {especialista.hora_fin}</div>
+                </div>
+              </div>
+            )}
+
             <p style={s.label}>Fecha</p>
             <input type="date" min={hoy} value={fecha}
               onChange={e => { setFecha(e.target.value); setSlots([]); setErrorSlots(null); setHoraSeleccionada(null); }}
               style={s.input} />
-            {especialista && fecha && (
+
+            {!soloUnEspecialista && especialista && fecha && (
               <p style={{ fontSize: 12, color: '#6B69A0', marginTop: 8 }}>
                 Horario de {especialista.nombre}: {especialista.hora_inicio} — {especialista.hora_fin} · {especialista.dias_trabajo.join(', ')}
               </p>
             )}
-            <button onClick={() => setPaso(3)} disabled={!especialista || !fecha}
+
+            <button
+              onClick={() => setPaso(3)}
+              disabled={!especialista || !fecha}
               style={{ ...s.btn, opacity: (!especialista || !fecha) ? 0.5 : 1 }}>
               Ver horarios disponibles →
             </button>
@@ -209,10 +247,13 @@ export default function ReservaPage({ params }) {
           </div>
         )}
 
+        {/* PASO 3 — Slots */}
         {paso === 3 && (
           <div>
             <h2 style={s.stepTitle}>Elige tu horario</h2>
-            <p style={{ fontSize: 14, color: '#6B69A0', margin: '0 0 20px' }}>{especialista.nombre} · {fecha}</p>
+            <p style={{ fontSize: 14, color: '#6B69A0', margin: '0 0 20px' }}>
+              {especialista.nombre} · {fecha}
+            </p>
 
             {loadingSlots && (
               <div style={s.center}>
@@ -258,6 +299,7 @@ export default function ReservaPage({ params }) {
           </div>
         )}
 
+        {/* PASO 4 — Datos del cliente */}
         {paso === 4 && (
           <div>
             <h2 style={s.stepTitle}>Tus datos</h2>
