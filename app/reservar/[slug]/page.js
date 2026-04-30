@@ -24,32 +24,53 @@ export default function ReservaPage({ params }) {
   const [enviando, setEnviando] = useState(false);
   const [confirmado, setConfirmado] = useState(false);
 
+  // Cargar config
   useEffect(() => {
     fetch(`/api/config?slug=${slug}`)
       .then(r => r.json())
       .then(data => {
         if (data.error) { setError(data.error); setLoading(false); return; }
         setConfig(data);
-        // Si solo hay 1 sucursal, seleccionarla automáticamente
-        if (!data.tieneSucursales) {
-          setSucursal(data.sucursales[0]);
-        }
-        // Si solo hay 1 especialista total, seleccionarlo automáticamente
-        if (data.especialistas?.length === 1) {
-          setEspecialista(data.especialistas[0]);
+
+        // Si solo hay 1 sucursal → seleccionarla automáticamente
+        const sucursalInicial = data.sucursales?.[0] || null;
+        if (!data.tieneSucursales && sucursalInicial) {
+          setSucursal(sucursalInicial);
+          // Si además solo hay 1 especialista → seleccionarlo también
+          const espDeSucursal = data.especialistas?.filter(e => e.sucursal === sucursalInicial) || [];
+          if (espDeSucursal.length === 1) setEspecialista(espDeSucursal[0]);
         }
         setLoading(false);
       })
       .catch(() => { setError('Error cargando el negocio'); setLoading(false); });
   }, [slug]);
 
-  // Especialistas filtrados por sucursal seleccionada
+  // Especialistas filtrados por sucursal
   const especialistasDeSucursal = config?.especialistas?.filter(
     e => !sucursal || e.sucursal === sucursal
   ) || [];
 
   const soloUnEspecialista = especialistasDeSucursal.length === 1;
 
+  // Cuando el cliente elige una sucursal → resetear selecciones y auto-seleccionar si aplica
+  const elegirSucursal = (suc) => {
+    setSucursal(suc);
+    setServicio(null);
+    setFecha('');
+    setSlots([]);
+    setErrorSlots(null);
+    setHoraSeleccionada(null);
+    // Auto-seleccionar especialista si solo hay 1 en esa sucursal
+    const espDeSuc = config?.especialistas?.filter(e => e.sucursal === suc) || [];
+    if (espDeSuc.length === 1) {
+      setEspecialista(espDeSuc[0]);
+    } else {
+      setEspecialista(null);
+    }
+    setPaso(2);
+  };
+
+  // Cargar slots
   useEffect(() => {
     if (!fecha || !especialista || !servicio) return;
 
@@ -71,7 +92,7 @@ export default function ReservaPage({ params }) {
     fetch(url)
       .then(r => r.json())
       .then(data => {
-        if (data.error) { setErrorSlots('Error consultando disponibilidad: ' + data.error); setSlots([]); }
+        if (data.error) { setErrorSlots('Error: ' + data.error); setSlots([]); }
         else {
           setSlots(data.slots || []);
           if ((data.slots || []).length === 0) setErrorSlots('No hay horarios disponibles para este día.');
@@ -81,23 +102,11 @@ export default function ReservaPage({ params }) {
       .catch(() => { setErrorSlots('Error de conexión.'); setSlots([]); setLoadingSlots(false); });
   }, [fecha, especialista, servicio]);
 
-  // Auto-seleccionar especialista cuando cambia la sucursal y hay solo 1
-  useEffect(() => {
-    if (especialistasDeSucursal.length === 1) {
-      setEspecialista(especialistasDeSucursal[0]);
-    } else {
-      setEspecialista(null);
-    }
-    setSlots([]);
-    setErrorSlots(null);
-    setHoraSeleccionada(null);
-    setFecha('');
-  }, [sucursal]);
-
   const handleConfirmar = async () => {
     if (!nombre || !telefono) return;
     setEnviando(true);
     try {
+      const sucursalFinal = sucursal || config?.sucursales?.[0] || 'Principal';
       const res = await fetch('/api/reservar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -106,7 +115,7 @@ export default function ReservaPage({ params }) {
           nombre, telefono, notas,
           servicio: `${servicio.nombre} — S/ ${servicio.precio}`,
           especialista: especialista.nombre,
-          sucursal: sucursal || 'Principal',
+          sucursal: sucursalFinal,
           fecha,
           hora: horaSeleccionada.horaDisplay,
           hora24: horaSeleccionada.hora24,
@@ -115,16 +124,12 @@ export default function ReservaPage({ params }) {
       });
       const data = await res.json();
       if (data.success) setConfirmado(true);
-      else alert('Error al enviar la reserva: ' + (data.error || 'Intenta de nuevo.'));
+      else alert('Error: ' + (data.error || 'Intenta de nuevo.'));
     } catch { alert('Error de conexión. Intenta de nuevo.'); }
     setEnviando(false);
   };
 
-  // Calcular pasos totales
   const tieneSucursales = config?.tieneSucursales;
-  const totalPasos = (tieneSucursales ? 1 : 0) + 1 + (!soloUnEspecialista ? 1 : 0) + 1 + 1;
-
-  // Labels de pasos dinámicos
   const labelsBase = [];
   if (tieneSucursales) labelsBase.push('Sucursal');
   labelsBase.push('Servicio');
@@ -134,8 +139,6 @@ export default function ReservaPage({ params }) {
   labelsBase.push('Tus datos');
 
   const hoy = new Date().toISOString().split('T')[0];
-
-  // Calcular paso real según si hay sucursales
   const pasoBase = tieneSucursales ? paso : paso + 1;
 
   if (loading) return <div style={s.center}><div style={s.spinner}></div><p style={s.muted}>Cargando...</p></div>;
@@ -174,14 +177,14 @@ export default function ReservaPage({ params }) {
 
       <div style={s.card}>
 
-        {/* PASO SUCURSAL — solo si hay más de 1 */}
+        {/* PASO SUCURSAL */}
         {tieneSucursales && paso === 1 && (
           <div>
             <h2 style={s.stepTitle}>¿A qué sucursal quieres ir?</h2>
             <div style={s.list}>
               {config.sucursales.map(suc => (
                 <div key={suc}
-                  onClick={() => { setSucursal(suc); setPaso(2); }}
+                  onClick={() => elegirSucursal(suc)}
                   style={{ ...s.option, borderColor: sucursal === suc ? '#534AB7' : '#E2E1F5', background: sucursal === suc ? '#EEEDFE' : 'white' }}>
                   <div style={{ fontSize: 20 }}>📍</div>
                   <div style={s.optName}>{suc}</div>
