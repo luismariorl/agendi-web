@@ -255,6 +255,12 @@ export default function ReservaPage({ params }) {
               onChange={e => { setFecha(e.target.value); setSlots([]); setErrorSlots(null); setHoraSeleccionada(null); }}
               style={s.input} />
 
+            {especialista && (
+              <p style={{ fontSize: 12, color: '#6B69A0', marginTop: 8, marginBottom: 4 }}>
+                🕐 Horario de {especialista.nombre}: {especialista.hora_inicio} — {especialista.hora_fin} · {especialista.dias_trabajo.join(', ')}
+              </p>
+            )}
+
             <button onClick={() => setPaso(paso + 1)} disabled={!especialista || !fecha}
               style={{ ...s.btn, opacity: (!especialista || !fecha) ? 0.5 : 1 }}>
               Ver horarios disponibles →

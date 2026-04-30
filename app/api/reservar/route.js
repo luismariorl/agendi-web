@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { formId, nombre, telefono, servicio, especialista, fecha, hora, hora24, notas, duracion } = body;
+    const { formId, nombre, telefono, servicio, especialista, sucursal, fecha, hora, hora24, notas, duracion } = body;
 
     if (!formId || !nombre || !telefono || !servicio || !especialista || !fecha || !hora) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
