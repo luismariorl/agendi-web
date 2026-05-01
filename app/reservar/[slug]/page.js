@@ -87,7 +87,9 @@ export default function ReservaPage({ params }) {
     setErrorSlots(null);
     setHoraSeleccionada(null);
 
-    const url = `/api/slots?calendarId=${encodeURIComponent(especialista.calendar_id)}&fecha=${fecha}&duracion=${servicio.duracion || 60}&horaInicio=${especialista.hora_inicio}&horaFin=${especialista.hora_fin}`;
+    const horaInicioParam = especialista.turnos.map(t => t.inicio).join('|');
+const horaFinParam = especialista.turnos.map(t => t.fin).join('|');
+const url = `/api/slots?calendarId=${encodeURIComponent(especialista.calendar_id)}&fecha=${fecha}&duracion=${servicio.duracion || 60}&horaInicio=${encodeURIComponent(horaInicioParam)}&horaFin=${encodeURIComponent(horaFinParam)}`;
 
     fetch(url)
       .then(r => r.json())

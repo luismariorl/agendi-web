@@ -6,23 +6,27 @@ export async function GET(request) {
   const calendarId = searchParams.get('calendarId');
   const fecha = searchParams.get('fecha');
   const duracion = parseInt(searchParams.get('duracion') || '60');
-  const horaInicio = searchParams.get('horaInicio') || '09:00';
-  const horaFin = searchParams.get('horaFin') || '18:00';
+  // Soportar múltiples turnos separados por | ej: "08:00|14:00"
+  const horaInicioParam = searchParams.get('horaInicio') || '09:00';
+  const horaFinParam = searchParams.get('horaFin') || '18:00';
 
   if (!calendarId || !fecha) {
     return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
   }
 
-  // Limpiar fecha — solo YYYY-MM-DD sin espacios ni caracteres extra
   const fechaLimpia = fecha.trim().substring(0, 10);
 
-  // Validar formato de fecha
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaLimpia)) {
-    return NextResponse.json({ 
-      slots: [], 
-      error: `Formato de fecha inválido: ${fecha}` 
-    });
+    return NextResponse.json({ slots: [], error: `Formato de fecha inválido: ${fecha}` });
   }
+
+  // Parsear turnos múltiples
+  const horasInicio = horaInicioParam.split('|').map(h => h.trim());
+  const horasFin = horaFinParam.split('|').map(h => h.trim());
+  const turnos = horasInicio.map((ini, i) => ({
+    inicio: ini,
+    fin: horasFin[i] || horasFin[horasFin.length - 1],
+  }));
 
   try {
     const auth = new google.auth.GoogleAuth({
@@ -35,12 +39,12 @@ export async function GET(request) {
 
     const calendar = google.calendar({ version: 'v3', auth });
 
-    const [hIni, mIni] = horaInicio.split(':').map(Number);
-    const [hFin, mFin] = horaFin.split(':').map(Number);
+    // Obtener el rango completo del día (primer inicio → último fin)
+    const primerInicio = turnos[0].inicio;
+    const ultimoFin = turnos[turnos.length - 1].fin;
 
-    // Construir fechas usando fechaLimpia
-    const timeMin = new Date(`${fechaLimpia}T${horaInicio}:00-05:00`).toISOString();
-    const timeMax = new Date(`${fechaLimpia}T${horaFin}:00-05:00`).toISOString();
+    const timeMin = new Date(`${fechaLimpia}T${primerInicio}:00-05:00`).toISOString();
+    const timeMax = new Date(`${fechaLimpia}T${ultimoFin}:00-05:00`).toISOString();
 
     const res = await calendar.events.list({
       calendarId,
@@ -52,43 +56,42 @@ export async function GET(request) {
 
     const eventos = res.data.items || [];
 
+    // Generar slots para cada turno y unirlos
     const slots = [];
-    let hora = hIni * 60 + mIni;
-    const fin = hFin * 60 + mFin;
 
-    while (hora + duracion <= fin) {
-      const h = Math.floor(hora / 60);
-      const m = hora % 60;
-      const horaStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-      const slotInicio = new Date(`${fechaLimpia}T${horaStr}:00-05:00`);
-      const slotFin = new Date(slotInicio.getTime() + duracion * 60000);
+    for (const turno of turnos) {
+      const [hIni, mIni] = turno.inicio.split(':').map(Number);
+      const [hFin, mFin] = turno.fin.split(':').map(Number);
 
-      const ocupado = eventos.some(evento => {
-        const eventoInicio = new Date(evento.start.dateTime || evento.start.date);
-        const eventoFin = new Date(evento.end.dateTime || evento.end.date);
-        return slotInicio < eventoFin && slotFin > eventoInicio;
-      });
+      let hora = hIni * 60 + mIni;
+      const fin = hFin * 60 + mFin;
 
-      const period = h >= 12 ? 'pm' : 'am';
-      const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
-      const horaDisplay = `${h12}:${String(m).padStart(2, '0')} ${period}`;
+      while (hora + duracion <= fin) {
+        const h = Math.floor(hora / 60);
+        const m = hora % 60;
+        const horaStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        const slotInicio = new Date(`${fechaLimpia}T${horaStr}:00-05:00`);
+        const slotFin = new Date(slotInicio.getTime() + duracion * 60000);
 
-      slots.push({
-        hora24: horaStr,
-        horaDisplay,
-        disponible: !ocupado,
-      });
+        const ocupado = eventos.some(evento => {
+          const eventoInicio = new Date(evento.start.dateTime || evento.start.date);
+          const eventoFin = new Date(evento.end.dateTime || evento.end.date);
+          return slotInicio < eventoFin && slotFin > eventoInicio;
+        });
 
-      hora += duracion;
+        const period = h >= 12 ? 'pm' : 'am';
+        const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
+        const horaDisplay = `${h12}:${String(m).padStart(2, '0')} ${period}`;
+
+        slots.push({ hora24: horaStr, horaDisplay, disponible: !ocupado });
+        hora += duracion;
+      }
     }
 
     return NextResponse.json({ slots });
 
   } catch (error) {
     console.error('Error Calendar:', calendarId, error.message);
-    return NextResponse.json({ 
-      slots: [], 
-      error: error.message 
-    });
+    return NextResponse.json({ slots: [], error: error.message });
   }
 }

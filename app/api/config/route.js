@@ -21,7 +21,6 @@ export async function GET(request) {
     const sheets = google.sheets({ version: 'v4', auth });
     const sheetId = process.env.GOOGLE_SHEETS_ID;
 
-    // Leer empresas
     const empresasRes = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
       range: 'Empresas!A:G',
@@ -44,7 +43,6 @@ export async function GET(request) {
     const formId = empresa[headers.indexOf('form_id')];
     const nombreNegocio = empresa[headers.indexOf('nombre_negocio')];
 
-    // Leer especialistas — ahora incluye columna sucursal (G)
     const espRes = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
       range: 'Especialistas!A:G',
@@ -55,20 +53,34 @@ export async function GET(request) {
 
     const especialistas = espRows.slice(1)
       .filter(row => (row[espHeaders.indexOf('form_id')] || '') === formId)
-      .map(row => ({
-        nombre: row[espHeaders.indexOf('nombre_especialista')] || '',
-        calendar_id: row[espHeaders.indexOf('calendar_id')] || '',
-        hora_inicio: row[espHeaders.indexOf('hora_inicio')] || '09:00',
-        hora_fin: row[espHeaders.indexOf('hora_fin')] || '18:00',
-        dias_trabajo: (row[espHeaders.indexOf('dias_trabajo')] || '').split(',').map(d => d.trim()),
-        sucursal: row[espHeaders.indexOf('sucursal')] || 'Principal',
-      }));
+      .map(row => {
+        // Soportar múltiples horarios separados por | ej: "08:00|14:00"
+        const horaInicioRaw = row[espHeaders.indexOf('hora_inicio')] || '09:00';
+        const horaFinRaw = row[espHeaders.indexOf('hora_fin')] || '18:00';
 
-    // Extraer sucursales únicas — mantener orden de aparición
+        const horasInicio = horaInicioRaw.split('|').map(h => h.trim());
+        const horasFin = horaFinRaw.split('|').map(h => h.trim());
+
+        // Construir array de turnos: [{ inicio: '08:00', fin: '12:00' }, { inicio: '14:00', fin: '18:00' }]
+        const turnos = horasInicio.map((ini, i) => ({
+          inicio: ini,
+          fin: horasFin[i] || horasFin[horasFin.length - 1],
+        }));
+
+        return {
+          nombre: row[espHeaders.indexOf('nombre_especialista')] || '',
+          calendar_id: row[espHeaders.indexOf('calendar_id')] || '',
+          hora_inicio: horasInicio[0], // primer turno para mostrar en UI
+          hora_fin: horasFin[horasFin.length - 1], // último turno para mostrar en UI
+          turnos, // array completo de turnos
+          dias_trabajo: (row[espHeaders.indexOf('dias_trabajo')] || '').split(',').map(d => d.trim()),
+          sucursal: row[espHeaders.indexOf('sucursal')] || 'Principal',
+        };
+      });
+
     const sucursalesUnicas = [...new Set(especialistas.map(e => e.sucursal))];
     const tieneSucursales = sucursalesUnicas.length > 1;
 
-    // Leer servicios
     const servRes = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
       range: 'Servicios!A:D',
