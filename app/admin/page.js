@@ -13,7 +13,7 @@ export default async function AdminPage() {
 
   const especialistas = await getSheetData("Especialistas")
   const misEspecialistas = especialistas.filter(e => e.form_id === empresa.form_id)
-  const sucursales = [...new Set(misEspecialistas.map(e => e.sucursal).filter(Boolean))]
+  const sucursales = (empresa.sucursales || "").split("|").map(s => s.trim()).filter(Boolean)
 
   const reservas = await getReservas(empresa.sheet_id)
 

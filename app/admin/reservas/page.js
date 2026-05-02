@@ -12,7 +12,8 @@ export default async function ReservasPage() {
   const empresa = empresas.find(e => e.gmail_admin === session.user.email)
   if (!empresa) redirect("/admin/login")
 
-  const reservas = await getReservas(empresa.sheet_id)
+const reservas = await getReservas(empresa.sheet_id)
+const sucursales = (empresa.sucursales || "").split("|").map(s => s.trim()).filter(Boolean)
 
-  return <ReservasClient reservas={reservas} empresa={empresa} />
+return <ReservasClient reservas={reservas} empresa={empresa} sucursales={sucursales} />
 }

@@ -38,12 +38,12 @@ function initials(name) {
 const FILTROS = ["Hoy", "Esta semana", "Este mes", "Todo"]
 const ESTADOS = ["Todos", "Confirmada", "Cancelada"]
 
-export default function ReservasClient({ reservas, empresa }) {
+export default function ReservasClient({ reservas, empresa, sucursales: propSucursales }) {
   const [filtroTiempo, setFiltroTiempo] = useState("Todo")
   const [filtroEstado, setFiltroEstado] = useState("Todos")
   const [busqueda, setBusqueda] = useState("")
 
-  const sucursales = [...new Set(reservas.map(r => r.Sucursal).filter(Boolean))]
+  const sucursales = propSucursales || [...new Set(reservas.map(r => r.Sucursal).filter(Boolean))]
   const [filtroSucursal, setFiltroSucursal] = useState("Todas")
 
   const filtradas = useMemo(() => {
