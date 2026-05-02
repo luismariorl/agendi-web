@@ -18,7 +18,9 @@ export default async function EquipoPage() {
     .filter(e => e.form_id === empresa.form_id)
 
   const reservas = await getReservas(empresa.sheet_id)
-  const sucursales = [...new Set(misEspecialistas.map(e => e.sucursal).filter(Boolean))]
+
+  // Sucursales vienen de Configuración, no de los especialistas
+  const sucursales = (empresa.sucursales || "").split("|").map(s => s.trim()).filter(Boolean)
 
   return <EquipoClient especialistas={misEspecialistas} reservas={reservas} sucursales={sucursales} />
 }

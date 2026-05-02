@@ -27,9 +27,10 @@ export async function PUT(req) {
   if (!empresa) return Response.json({ error: "No autorizado" }, { status: 401 })
 
   const body = await req.json()
-  const { fila, nombre_servicio, precio, duracion_min } = body
+  console.log("PUT servicios body:", body)
+  const { fila, nombre_servicio, precio, duracion_min, sucursal } = body
 
-  await updateRow("Servicios", fila, [empresa.form_id, nombre_servicio, precio, duracion_min])
+  await updateRow("Servicios", fila, [empresa.form_id, nombre_servicio, precio, duracion_min, sucursal])  
 
   return Response.json({ ok: true })
 }

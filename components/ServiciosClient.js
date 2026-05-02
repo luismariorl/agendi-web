@@ -50,15 +50,25 @@ const inputStyle = {
   boxSizing: "border-box",
 }
 
-export default function ServiciosClient({ servicios, empresa }) {
+export default function ServiciosClient({ servicios, empresa, sucursales }) {
   const router = useRouter()
+  const [filtroSucursal, setFiltroSucursal] = useState("Todas")
   const [modalAgregar, setModalAgregar] = useState(false)
   const [modalEditar, setModalEditar] = useState(null)
   const [cargando, setCargando] = useState(false)
-  const [form, setForm] = useState({ nombre_servicio: "", precio: "", duracion_min: "" })
+  const [form, setForm] = useState({ nombre_servicio: "", precio: "", duracion_min: "", sucursal: [] })
+
+  function toggleSucursal(s) {
+    setForm(f => ({
+      ...f,
+      sucursal: f.sucursal.includes(s)
+        ? f.sucursal.filter(x => x !== s)
+        : [...f.sucursal, s],
+    }))
+  }
 
   function abrirAgregar() {
-    setForm({ nombre_servicio: "", precio: "", duracion_min: "" })
+    setForm({ nombre_servicio: "", precio: "", duracion_min: "", sucursal: [] })
     setModalAgregar(true)
   }
 
@@ -67,6 +77,7 @@ export default function ServiciosClient({ servicios, empresa }) {
       nombre_servicio: srv.nombre_servicio,
       precio: srv.precio,
       duracion_min: srv.duracion_min,
+      sucursal: (srv.sucursal || "").split("|").map(s => s.trim()).filter(Boolean),
       _fila: srv._fila,
     })
     setModalEditar(srv)
@@ -78,7 +89,7 @@ export default function ServiciosClient({ servicios, empresa }) {
     await fetch("/api/servicios", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, sucursal: form.sucursal.join("|") }),
     })
     setCargando(false)
     setModalAgregar(false)
@@ -91,7 +102,7 @@ export default function ServiciosClient({ servicios, empresa }) {
     await fetch("/api/servicios", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, fila: form._fila }),
+      body: JSON.stringify({ ...form, fila: form._fila, sucursal: form.sucursal.join("|") }),
     })
     setCargando(false)
     setModalEditar(null)
@@ -110,6 +121,12 @@ export default function ServiciosClient({ servicios, empresa }) {
     setModalEditar(null)
     router.refresh()
   }
+
+  const serviciosFiltrados = servicios.filter(s => {
+    if (filtroSucursal === "Todas") return true
+    const subs = (s.sucursal || "").split("|").map(x => x.trim())
+    return subs.includes(filtroSucursal)
+  })
 
   const formulario = (
     <>
@@ -130,6 +147,20 @@ export default function ServiciosClient({ servicios, empresa }) {
             placeholder="45" />
         </Campo>
       </div>
+      <Campo label="Sucursales donde se ofrece">
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+          {sucursales.map(s => (
+            <button key={s} type="button" onClick={() => toggleSucursal(s)} style={{
+              padding: "8px 16px", borderRadius: "20px", border: "1.5px solid",
+              borderColor: form.sucursal.includes(s) ? "#534AB7" : "#E8E8F0",
+              background: form.sucursal.includes(s) ? "#534AB7" : "white",
+              color: form.sucursal.includes(s) ? "white" : "#888",
+              fontSize: "13px", fontWeight: form.sucursal.includes(s) ? "600" : "400",
+              cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+            }}>{s}</button>
+          ))}
+        </div>
+      </Campo>
     </>
   )
 
@@ -149,39 +180,65 @@ export default function ServiciosClient({ servicios, empresa }) {
         }}>+ Agregar servicio</button>
       </div>
 
+      {/* Filtro sucursal */}
+      {sucursales.length > 1 && (
+        <div style={{
+          background: "white", borderRadius: "14px", padding: "14px 20px",
+          boxShadow: "0 1px 8px rgba(83,74,183,0.08)",
+          display: "flex", gap: "10px", alignItems: "center",
+        }}>
+          <span style={{ fontSize: "13px", fontWeight: "600", color: "#888" }}>Sucursal:</span>
+          {["Todas", ...sucursales].map(s => (
+            <button key={s} onClick={() => setFiltroSucursal(s)} style={{
+              padding: "6px 14px", borderRadius: "20px", border: "1.5px solid",
+              borderColor: filtroSucursal === s ? "#534AB7" : "#E8E8F0",
+              background: filtroSucursal === s ? "#534AB7" : "white",
+              color: filtroSucursal === s ? "white" : "#888",
+              fontSize: "13px", fontWeight: filtroSucursal === s ? "600" : "400",
+              cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+            }}>{s}</button>
+          ))}
+        </div>
+      )}
+
       {/* Grid de servicios */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "14px" }}>
-        {servicios.length === 0 ? (
+        {serviciosFiltrados.length === 0 ? (
           <div style={{ padding: "48px", textAlign: "center", color: "#ccc", fontSize: "14px", background: "white", borderRadius: "14px" }}>
-            No hay servicios registrados
+            No hay servicios en esta sucursal
           </div>
-        ) : servicios.map((srv, i) => (
-          <div key={i} style={{
-            background: "white", borderRadius: "14px",
-            boxShadow: "0 1px 8px rgba(83,74,183,0.08)",
-            overflow: "hidden",
-          }}>
-            <div style={{ background: "#534AB7", padding: "16px 20px" }}>
-              <div style={{ fontSize: "16px", fontWeight: "700", color: "white" }}>{srv.nombre_servicio}</div>
-            </div>
-            <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: "10px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "13px", color: "#888" }}>Precio</span>
-                <span style={{ fontSize: "18px", fontWeight: "700", color: "#534AB7" }}>S/{srv.precio}</span>
+        ) : serviciosFiltrados.map((srv, i) => {
+          const subs = (srv.sucursal || "").split("|").map(s => s.trim()).filter(Boolean)
+          return (
+            <div key={i} style={{
+              background: "white", borderRadius: "14px",
+              boxShadow: "0 1px 8px rgba(83,74,183,0.08)", overflow: "hidden",
+            }}>
+              <div style={{ background: "#534AB7", padding: "16px 20px" }}>
+                <div style={{ fontSize: "16px", fontWeight: "700", color: "white" }}>{srv.nombre_servicio}</div>
+                <div style={{ fontSize: "12px", color: "rgba(255,255,255,0.7)", marginTop: "4px" }}>
+                  {subs.length > 0 ? subs.join(" · ") : "Todas las sucursales"}
+                </div>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: "13px", color: "#888" }}>Duración</span>
-                <span style={{ fontSize: "14px", fontWeight: "600", color: "#1a1a2e" }}>{srv.duracion_min} min</span>
+              <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: "13px", color: "#888" }}>Precio</span>
+                  <span style={{ fontSize: "18px", fontWeight: "700", color: "#534AB7" }}>S/{srv.precio}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: "13px", color: "#888" }}>Duración</span>
+                  <span style={{ fontSize: "14px", fontWeight: "600", color: "#1a1a2e" }}>{srv.duracion_min} min</span>
+                </div>
+                <button onClick={() => abrirEditar(srv)} style={{
+                  marginTop: "4px", padding: "8px", borderRadius: "8px",
+                  border: "1.5px solid #E8E8F0", background: "white",
+                  color: "#534AB7", fontSize: "13px", fontWeight: "600",
+                  cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                }}>✏ Editar</button>
               </div>
-              <button onClick={() => abrirEditar(srv)} style={{
-                marginTop: "4px", padding: "8px", borderRadius: "8px",
-                border: "1.5px solid #E8E8F0", background: "white",
-                color: "#534AB7", fontSize: "13px", fontWeight: "600",
-                cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-              }}>✏ Editar</button>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Modal agregar */}

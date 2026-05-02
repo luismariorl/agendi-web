@@ -6,11 +6,17 @@ import AdminShell from "@/components/AdminShell"
 
 export default async function AdminLayout({ children }) {
   const session = await getServerSession(authOptions)
-  if (!session) redirect("/admin/login")
+
+  if (!session) {
+    return <>{children}</>
+  }
 
   const empresas = await getSheetData("Empresas")
   const empresa = empresas.find(e => e.gmail_admin === session.user.email)
-  if (!empresa) redirect("/admin/login")
+
+  if (!empresa) {
+    return <>{children}</>
+  }
 
   return (
     <AdminShell empresa={empresa} usuario={session.user}>

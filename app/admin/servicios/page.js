@@ -17,5 +17,8 @@ export default async function ServiciosPage() {
     .map((s, i) => ({ ...s, _fila: i + 2 }))
     .filter(s => s.form_id === empresa.form_id)
 
-  return <ServiciosClient servicios={misServicios} empresa={empresa} />
+  const sucursales = (empresa.sucursales || "").split("|").map(s => s.trim()).filter(Boolean)
+
+  return <ServiciosClient servicios={misServicios} empresa={empresa} sucursales={sucursales} />
+  
 }

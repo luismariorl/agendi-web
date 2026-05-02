@@ -155,8 +155,19 @@ function abrirEditar(esp) {
         <input style={inputStyle} value={form.nombre_especialista} onChange={e => setForm(f => ({ ...f, nombre_especialista: e.target.value }))} placeholder="Ej: Carmen López" />
       </Campo>
       <Campo label="Sucursal *">
-        <input style={inputStyle} value={form.sucursal} onChange={e => setForm(f => ({ ...f, sucursal: e.target.value }))} placeholder="Ej: Centro" />
-      </Campo>
+  <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+    {sucursales.map(s => (
+      <button key={s} type="button" onClick={() => setForm(f => ({ ...f, sucursal: s }))} style={{
+        padding: "8px 16px", borderRadius: "20px", border: "1.5px solid",
+        borderColor: form.sucursal === s ? "#534AB7" : "#E8E8F0",
+        background: form.sucursal === s ? "#534AB7" : "white",
+        color: form.sucursal === s ? "white" : "#888",
+        fontSize: "13px", fontWeight: form.sucursal === s ? "600" : "400",
+        cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+      }}>{s}</button>
+    ))}
+  </div>
+</Campo>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
         <Campo label="Hora inicio *">
           <input style={inputStyle} value={form.hora_inicio} onChange={e => setForm(f => ({ ...f, hora_inicio: e.target.value }))} placeholder="08:00" />
