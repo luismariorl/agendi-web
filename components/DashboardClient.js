@@ -50,6 +50,13 @@ function rankColor(i) {
   return { bg: "#F0EEFF", color: "#534AB7" }
 }
 
+function getLimite(plan) {
+  const p = (plan || "").toLowerCase()
+  if (p === "básico" || p === "basico") return 300
+  if (p === "regular") return 700
+  return null // Pro = ilimitado
+}
+
 export default function DashboardClient({ empresa, reservas, sucursales }) {
   const [filtroTiempo, setFiltroTiempo] = useState("Hoy")
   const [filtroSucursal, setFiltroSucursal] = useState("Todas")
@@ -105,6 +112,13 @@ export default function DashboardClient({ empresa, reservas, sucursales }) {
   })
   const topClientes = Object.values(clientesMap).sort((a, b) => b.visitas - a.visitas).slice(0, 10)
   const maxVisitas = topClientes[0]?.visitas || 1
+  const reservasMes = reservas.filter(r => {
+  const d = parseDate(r.Fecha)
+  const hoy = new Date()
+  return d && d.getMonth() === hoy.getMonth() && d.getFullYear() === hoy.getFullYear()
+})
+const limiteReservas = getLimite(empresa.plan)
+const porcentajeUso = limiteReservas ? Math.min((reservasMes.length / limiteReservas) * 100, 100) : null
 
   const hoy = new Date().toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })
 
@@ -139,6 +153,42 @@ export default function DashboardClient({ empresa, reservas, sucursales }) {
         </h1>
         <p style={{ margin: "4px 0 0", color: "#888", fontSize: "14px", textTransform: "capitalize" }}>{hoy}</p>
       </div>
+
+{limiteReservas && (
+  <div style={{
+    background: porcentajeUso >= 90 ? "#FFF1F1" : porcentajeUso >= 70 ? "#FFFBEB" : "#F0EEFF",
+    borderRadius: "14px", padding: "16px 20px",
+    border: `1px solid ${porcentajeUso >= 90 ? "#FEE2E2" : porcentajeUso >= 70 ? "#FEF3C7" : "#CECBF6"}`,
+    display: "flex", flexDirection: "column", gap: "8px",
+  }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <span style={{ fontSize: "13px", fontWeight: "600", color: "#1a1a2e" }}>
+        Reservas este mes
+      </span>
+      <span style={{ fontSize: "13px", fontWeight: "700", color: porcentajeUso >= 90 ? "#dc2626" : porcentajeUso >= 70 ? "#ca8a04" : "#534AB7" }}>
+        {reservasMes.length} / {limiteReservas}
+      </span>
+    </div>
+    <div style={{ height: "8px", background: "rgba(0,0,0,0.08)", borderRadius: "4px" }}>
+      <div style={{
+        height: "8px", borderRadius: "4px",
+        width: `${porcentajeUso}%`,
+        background: porcentajeUso >= 90 ? "#dc2626" : porcentajeUso >= 70 ? "#f59e0b" : "#534AB7",
+        transition: "width 0.3s",
+      }} />
+    </div>
+    {porcentajeUso >= 90 && (
+      <p style={{ margin: 0, fontSize: "12px", color: "#dc2626", fontWeight: "500" }}>
+        ⚠ Estás cerca de tu límite mensual. Considera actualizar tu plan.
+      </p>
+    )}
+    {porcentajeUso >= 70 && porcentajeUso < 90 && (
+      <p style={{ margin: 0, fontSize: "12px", color: "#ca8a04", fontWeight: "500" }}>
+        Llevas el {Math.round(porcentajeUso)}% de tu límite mensual.
+      </p>
+    )}
+  </div>
+)}
 
       <div style={{
         background: "white", borderRadius: "14px", padding: "16px 20px",

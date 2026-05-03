@@ -15,7 +15,6 @@ export const authOptions = {
         const empresas = await getSheetData("Empresas")
         const fila = empresas.find(row => row.gmail_admin === user.email)
         if (!fila) return false
-        if (fila.plan === "básico") return false
         return true
       } catch {
         return false
