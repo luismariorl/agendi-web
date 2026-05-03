@@ -8,35 +8,54 @@ export default function LoginPage() {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      background: "#f5f5f5",
+      background: "#F8F8FC",
     }}>
       <div style={{
         background: "white",
         padding: "48px",
-        borderRadius: "16px",
+        borderRadius: "20px",
         textAlign: "center",
-        boxShadow: "0 2px 16px rgba(0,0,0,0.08)",
+        boxShadow: "0 4px 24px rgba(83,74,183,0.10)",
         maxWidth: "400px",
         width: "100%",
       }}>
-        <h1 style={{ color: "#534AB7", fontFamily: "DM Sans, sans-serif", marginBottom: "8px" }}>
-          Agendi
-        </h1>
-        <p style={{ color: "#666", marginBottom: "32px", fontFamily: "DM Sans, sans-serif" }}>
-          Panel de administración
-        </p>
+        <div style={{
+          width: "56px", height: "56px",
+          background: "#534AB7",
+          borderRadius: "16px",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          margin: "0 auto 16px",
+          fontSize: "28px", fontWeight: "700", color: "white",
+          fontFamily: "'DM Serif Display', serif",
+        }}>A</div>
+        <h1 style={{
+          color: "#534AB7",
+          fontFamily: "'DM Serif Display', serif",
+          fontSize: "36px",
+          fontWeight: "700",
+          margin: "0 0 8px",
+          letterSpacing: "-0.5px",
+        }}>Agendi</h1>
+        <p style={{
+          color: "#888",
+          marginBottom: "36px",
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: "15px",
+        }}>Panel de administración</p>
         <button
           onClick={() => signIn("google", { callbackUrl: "/admin" })}
           style={{
             background: "#534AB7",
             color: "white",
             border: "none",
-            borderRadius: "8px",
+            borderRadius: "12px",
             padding: "14px 32px",
-            fontSize: "16px",
+            fontSize: "15px",
             cursor: "pointer",
-            fontFamily: "DM Sans, sans-serif",
+            fontFamily: "'DM Sans', sans-serif",
+            fontWeight: "600",
             width: "100%",
+            transition: "opacity 0.15s",
           }}
         >
           Ingresar con Google
