@@ -54,14 +54,10 @@ export async function GET(request) {
     const especialistas = espRows.slice(1)
       .filter(row => (row[espHeaders.indexOf('form_id')] || '') === formId)
       .map(row => {
-        // Soportar múltiples horarios separados por | ej: "08:00|14:00"
         const horaInicioRaw = row[espHeaders.indexOf('hora_inicio')] || '09:00';
         const horaFinRaw = row[espHeaders.indexOf('hora_fin')] || '18:00';
-
         const horasInicio = horaInicioRaw.split('|').map(h => h.trim());
         const horasFin = horaFinRaw.split('|').map(h => h.trim());
-
-        // Construir array de turnos: [{ inicio: '08:00', fin: '12:00' }, { inicio: '14:00', fin: '18:00' }]
         const turnos = horasInicio.map((ini, i) => ({
           inicio: ini,
           fin: horasFin[i] || horasFin[horasFin.length - 1],
@@ -70,9 +66,9 @@ export async function GET(request) {
         return {
           nombre: row[espHeaders.indexOf('nombre_especialista')] || '',
           calendar_id: row[espHeaders.indexOf('calendar_id')] || '',
-          hora_inicio: horasInicio[0], // primer turno para mostrar en UI
-          hora_fin: horasFin[horasFin.length - 1], // último turno para mostrar en UI
-          turnos, // array completo de turnos
+          hora_inicio: horasInicio[0],
+          hora_fin: horasFin[horasFin.length - 1],
+          turnos,
           dias_trabajo: (row[espHeaders.indexOf('dias_trabajo')] || '').split(',').map(d => d.trim()),
           sucursal: row[espHeaders.indexOf('sucursal')] || 'Principal',
         };
@@ -83,7 +79,7 @@ export async function GET(request) {
 
     const servRes = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'Servicios!A:D',
+      range: 'Servicios!A:E',
     });
 
     const servRows = servRes.data.values || [];
@@ -94,6 +90,7 @@ export async function GET(request) {
         nombre: row[servHeaders.indexOf('nombre_servicio')] || '',
         precio: row[servHeaders.indexOf('precio')] || '0',
         duracion: parseInt(row[servHeaders.indexOf('duracion_min')] || '60'),
+        sucursales: (row[servHeaders.indexOf('sucursal')] || '').split('|').map(s => s.trim()).filter(Boolean),
       }));
 
     return NextResponse.json({

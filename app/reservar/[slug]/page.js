@@ -207,7 +207,13 @@ const url = `/api/slots?calendarId=${encodeURIComponent(especialista.calendar_id
               </div>
             )}
             <div style={s.list}>
-              {config.servicios.map(sv => (
+              {config.servicios
+  .filter(sv =>
+    !sv.sucursales || sv.sucursales.length === 0 ||
+    !sucursal ||
+    sv.sucursales.includes(sucursal)
+  )
+  .map(sv => (
                 <div key={sv.nombre}
                   onClick={() => { setServicio(sv); setPaso(paso + 1); }}
                   style={{ ...s.option, borderColor: servicio?.nombre === sv.nombre ? '#534AB7' : '#E2E1F5', background: servicio?.nombre === sv.nombre ? '#EEEDFE' : 'white' }}>
