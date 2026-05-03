@@ -2,7 +2,7 @@
 import { useState, useMemo } from "react"
 import Link from "next/link"
 
-const FILTROS_TIEMPO = ["Hoy", "Esta semana", "Este mes", "Todo"]
+const FILTROS_TIEMPO = ["Hoy", "Esta semana", "Este mes", "Todo", "Personalizado"]
 
 function parseDate(str) {
   if (!str) return null
@@ -11,7 +11,7 @@ function parseDate(str) {
   return new Date(parseInt(y), parseInt(m) - 1, parseInt(d))
 }
 
-function estaEnRango(fecha, filtro) {
+function estaEnRango(fecha, filtro, inicio, fin) {
   const d = parseDate(fecha)
   if (!d) return false
   const hoy = new Date()
@@ -23,6 +23,15 @@ function estaEnRango(fecha, filtro) {
     return d >= lunes
   }
   if (filtro === "Este mes") return d.getMonth() === hoy.getMonth() && d.getFullYear() === hoy.getFullYear()
+  if (filtro === "Personalizado") {
+    const dInicio = inicio ? new Date(inicio) : null
+    const dFin = fin ? new Date(fin) : null
+    if (dInicio) dInicio.setHours(0, 0, 0, 0)
+    if (dFin) dFin.setHours(23, 59, 59, 999)
+    if (dInicio && d < dInicio) return false
+    if (dFin && d > dFin) return false
+    return true
+  }
   return true
 }
 
@@ -54,20 +63,22 @@ function getLimite(plan) {
   const p = (plan || "").toLowerCase()
   if (p === "básico" || p === "basico") return 300
   if (p === "regular") return 700
-  return null // Pro = ilimitado
+  return null
 }
 
 export default function DashboardClient({ empresa, reservas, sucursales }) {
   const [filtroTiempo, setFiltroTiempo] = useState("Hoy")
   const [filtroSucursal, setFiltroSucursal] = useState("Todas")
+  const [fechaInicio, setFechaInicio] = useState("")
+  const [fechaFin, setFechaFin] = useState("")
 
   const filtradas = useMemo(() => {
     return reservas.filter(r => {
-      const enRango = estaEnRango(r.Fecha, filtroTiempo)
+      const enRango = estaEnRango(r.Fecha, filtroTiempo, fechaInicio, fechaFin)
       const enSucursal = filtroSucursal === "Todas" || r.Sucursal === filtroSucursal
       return enRango && enSucursal
     })
-  }, [reservas, filtroTiempo, filtroSucursal])
+  }, [reservas, filtroTiempo, filtroSucursal, fechaInicio, fechaFin])
 
   const canceladas = filtradas.filter(r => (r.Estado || "").toLowerCase() === "cancelada").length
   const noCancel = filtradas.filter(r => (r.Estado || "").toLowerCase() !== "cancelada")
@@ -75,7 +86,7 @@ export default function DashboardClient({ empresa, reservas, sucursales }) {
 
   const telefonosEnPeriodo = new Set(filtradas.map(r => r.Telefono).filter(Boolean))
   const telefonosFuera = new Set(
-    reservas.filter(r => !estaEnRango(r.Fecha, filtroTiempo)).map(r => r.Telefono).filter(Boolean)
+    reservas.filter(r => !estaEnRango(r.Fecha, filtroTiempo, fechaInicio, fechaFin)).map(r => r.Telefono).filter(Boolean)
   )
   const clientesNuevos = [...telefonosEnPeriodo].filter(t => !telefonosFuera.has(t)).length
 
@@ -112,18 +123,19 @@ export default function DashboardClient({ empresa, reservas, sucursales }) {
   })
   const topClientes = Object.values(clientesMap).sort((a, b) => b.visitas - a.visitas).slice(0, 10)
   const maxVisitas = topClientes[0]?.visitas || 1
+
   const reservasMes = reservas.filter(r => {
-  const d = parseDate(r.Fecha)
-  const hoy = new Date()
-  return d && d.getMonth() === hoy.getMonth() && d.getFullYear() === hoy.getFullYear()
-})
-const limiteReservas = getLimite(empresa.plan)
-const porcentajeUso = limiteReservas ? Math.min((reservasMes.length / limiteReservas) * 100, 100) : null
+    const d = parseDate(r.Fecha)
+    const hoy = new Date()
+    return d && d.getMonth() === hoy.getMonth() && d.getFullYear() === hoy.getFullYear()
+  })
+  const limiteReservas = getLimite(empresa.plan)
+  const porcentajeUso = limiteReservas ? Math.min((reservasMes.length / limiteReservas) * 100, 100) : null
 
   const hoy = new Date().toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })
 
   const proximasHoy = reservas
-    .filter(r => estaEnRango(r.Fecha, "Hoy") && (r.Estado || "").toLowerCase() !== "cancelada")
+    .filter(r => estaEnRango(r.Fecha, "Hoy", "", "") && (r.Estado || "").toLowerCase() !== "cancelada")
     .sort((a, b) => (a.Hora || "").localeCompare(b.Hora || ""))
 
   const pill = (label, active, onClick, variant = "primary") => (
@@ -135,6 +147,19 @@ const porcentajeUso = limiteReservas ? Math.min((reservasMes.length / limiteRese
       fontSize: "13px", fontWeight: active ? "600" : "400",
       cursor: "pointer", fontFamily: "'DM Sans', sans-serif", transition: "all 0.15s",
     }}>{label}</button>
+  )
+
+  const dateInput = (value, onChange) => (
+    <input
+      type="date"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      style={{
+        padding: "6px 10px", borderRadius: "10px",
+        border: "1.5px solid #534AB7", fontSize: "13px",
+        fontFamily: "'DM Sans', sans-serif", color: "#1a1a2e",
+      }}
+    />
   )
 
   const stats = [
@@ -154,42 +179,32 @@ const porcentajeUso = limiteReservas ? Math.min((reservasMes.length / limiteRese
         <p style={{ margin: "4px 0 0", color: "#888", fontSize: "14px", textTransform: "capitalize" }}>{hoy}</p>
       </div>
 
-{limiteReservas && (
-  <div style={{
-    background: porcentajeUso >= 90 ? "#FFF1F1" : porcentajeUso >= 70 ? "#FFFBEB" : "#F0EEFF",
-    borderRadius: "14px", padding: "16px 20px",
-    border: `1px solid ${porcentajeUso >= 90 ? "#FEE2E2" : porcentajeUso >= 70 ? "#FEF3C7" : "#CECBF6"}`,
-    display: "flex", flexDirection: "column", gap: "8px",
-  }}>
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <span style={{ fontSize: "13px", fontWeight: "600", color: "#1a1a2e" }}>
-        Reservas este mes
-      </span>
-      <span style={{ fontSize: "13px", fontWeight: "700", color: porcentajeUso >= 90 ? "#dc2626" : porcentajeUso >= 70 ? "#ca8a04" : "#534AB7" }}>
-        {reservasMes.length} / {limiteReservas}
-      </span>
-    </div>
-    <div style={{ height: "8px", background: "rgba(0,0,0,0.08)", borderRadius: "4px" }}>
-      <div style={{
-        height: "8px", borderRadius: "4px",
-        width: `${porcentajeUso}%`,
-        background: porcentajeUso >= 90 ? "#dc2626" : porcentajeUso >= 70 ? "#f59e0b" : "#534AB7",
-        transition: "width 0.3s",
-      }} />
-    </div>
-    {porcentajeUso >= 90 && (
-      <p style={{ margin: 0, fontSize: "12px", color: "#dc2626", fontWeight: "500" }}>
-        ⚠ Estás cerca de tu límite mensual. Considera actualizar tu plan.
-      </p>
-    )}
-    {porcentajeUso >= 70 && porcentajeUso < 90 && (
-      <p style={{ margin: 0, fontSize: "12px", color: "#ca8a04", fontWeight: "500" }}>
-        Llevas el {Math.round(porcentajeUso)}% de tu límite mensual.
-      </p>
-    )}
-  </div>
-)}
+      {limiteReservas && (
+        <div style={{
+          background: porcentajeUso >= 90 ? "#FFF1F1" : porcentajeUso >= 70 ? "#FFFBEB" : "#F0EEFF",
+          borderRadius: "14px", padding: "16px 20px",
+          border: `1px solid ${porcentajeUso >= 90 ? "#FEE2E2" : porcentajeUso >= 70 ? "#FEF3C7" : "#CECBF6"}`,
+          display: "flex", flexDirection: "column", gap: "8px",
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: "13px", fontWeight: "600", color: "#1a1a2e" }}>Reservas este mes</span>
+            <span style={{ fontSize: "13px", fontWeight: "700", color: porcentajeUso >= 90 ? "#dc2626" : porcentajeUso >= 70 ? "#ca8a04" : "#534AB7" }}>
+              {reservasMes.length} / {limiteReservas}
+            </span>
+          </div>
+          <div style={{ height: "8px", background: "rgba(0,0,0,0.08)", borderRadius: "4px" }}>
+            <div style={{
+              height: "8px", borderRadius: "4px", width: `${porcentajeUso}%`,
+              background: porcentajeUso >= 90 ? "#dc2626" : porcentajeUso >= 70 ? "#f59e0b" : "#534AB7",
+              transition: "width 0.3s",
+            }} />
+          </div>
+          {porcentajeUso >= 90 && <p style={{ margin: 0, fontSize: "12px", color: "#dc2626", fontWeight: "500" }}>⚠ Estás cerca de tu límite mensual. Considera actualizar tu plan.</p>}
+          {porcentajeUso >= 70 && porcentajeUso < 90 && <p style={{ margin: 0, fontSize: "12px", color: "#ca8a04", fontWeight: "500" }}>Llevas el {Math.round(porcentajeUso)}% de tu límite mensual.</p>}
+        </div>
+      )}
 
+      {/* Filtros */}
       <div style={{
         background: "white", borderRadius: "14px", padding: "16px 20px",
         boxShadow: "0 1px 8px rgba(83,74,183,0.08)",
@@ -199,6 +214,13 @@ const porcentajeUso = limiteReservas ? Math.min((reservasMes.length / limiteRese
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
           {FILTROS_TIEMPO.map(f => pill(f, filtroTiempo === f, () => setFiltroTiempo(f), "primary"))}
         </div>
+        {filtroTiempo === "Personalizado" && (
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            {dateInput(fechaInicio, setFechaInicio)}
+            <span style={{ fontSize: "13px", color: "#888" }}>—</span>
+            {dateInput(fechaFin, setFechaFin)}
+          </div>
+        )}
         {sucursales.length > 1 && (
           <>
             <div style={{ width: "1px", height: "24px", background: "#E8E8F0", margin: "0 4px" }} />

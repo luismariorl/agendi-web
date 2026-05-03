@@ -26,17 +26,17 @@ export default function ConfiguracionClient({ empresa }) {
 
   const sucursalesIniciales = (empresa.sucursales || "").split("|").map(s => s.trim()).filter(Boolean)
 
-const whatsappActual = empresa.whatsapp_dueño || ""
-const codigosConocidos = ["51","1","52","54","56","57","58","591","593","595","598","34","44"]
-const codigoDetectado = codigosConocidos.find(c => whatsappActual.startsWith(c)) || "51"
-const numeroDetectado = whatsappActual.startsWith(codigoDetectado) ? whatsappActual.slice(codigoDetectado.length) : whatsappActual
+  const whatsappActual = empresa.whatsapp_dueño || ""
+  const codigosConocidos = ["51","1","52","54","56","57","58","591","593","595","598","34","44"]
+  const codigoDetectado = codigosConocidos.find(c => whatsappActual.startsWith(c)) || "51"
+  const numeroDetectado = whatsappActual.startsWith(codigoDetectado) ? whatsappActual.slice(codigoDetectado.length) : whatsappActual
 
-const [form, setForm] = useState({
-  nombre_negocio: empresa.nombre_negocio || "",
-  codigoPais: codigoDetectado,
-  numeroLocal: numeroDetectado,
-  sucursales: sucursalesIniciales,
-})
+  const [form, setForm] = useState({
+    nombre_negocio: empresa.nombre_negocio || "",
+    codigoPais: codigoDetectado,
+    numeroLocal: numeroDetectado,
+    sucursales: sucursalesIniciales,
+  })
 
   const [nuevaSucursal, setNuevaSucursal] = useState("")
 
@@ -52,16 +52,16 @@ const [form, setForm] = useState({
   }
 
   async function guardar() {
-    if (!form.nombre_negocio || !form.whatsapp_dueño) return alert("Completa los campos obligatorios")
+    if (!form.nombre_negocio || !form.numeroLocal) return alert("Completa los campos obligatorios")
     setCargando(true)
     await fetch("/api/configuracion", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-  ...form, 
-  whatsapp_dueño: `${form.codigoPais}${form.numeroLocal}`,
-  sucursales: form.sucursales.join("|") 
-}),
+      body: JSON.stringify({
+        ...form,
+        whatsapp_dueño: `${form.codigoPais}${form.numeroLocal}`,
+        sucursales: form.sucursales.join("|"),
+      }),
     })
     setCargando(false)
     setGuardado(true)
@@ -78,11 +78,19 @@ const [form, setForm] = useState({
           <h1 style={{ margin: 0, fontSize: "26px", fontWeight: "700", color: "#1a1a2e" }}>Configuración</h1>
           <p style={{ margin: "4px 0 0", color: "#888", fontSize: "14px" }}>Información general de tu negocio</p>
         </div>
-        {guardado && (
-          <div style={{ padding: "10px 20px", borderRadius: "10px", background: "#DCFCE7", color: "#16a34a", fontSize: "14px", fontWeight: "600" }}>
-            ✓ Cambios guardados
-          </div>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {guardado && (
+            <div style={{ padding: "10px 20px", borderRadius: "10px", background: "#DCFCE7", color: "#16a34a", fontSize: "14px", fontWeight: "600" }}>
+              ✓ Cambios guardados
+            </div>
+          )}
+          <button onClick={guardar} disabled={cargando} style={{
+            padding: "12px 28px", borderRadius: "10px", border: "none",
+            background: "#534AB7", color: "white", fontSize: "14px", fontWeight: "600",
+            cursor: cargando ? "not-allowed" : "pointer", fontFamily: "'DM Sans', sans-serif",
+            opacity: cargando ? 0.7 : 1,
+          }}>{cargando ? "Guardando..." : "Guardar cambios"}</button>
+        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", alignItems: "start" }}>
@@ -98,34 +106,34 @@ const [form, setForm] = useState({
           </Campo>
 
           <Campo label="WhatsApp del dueño *" hint="Selecciona el código de país e ingresa tu número local">
-  <div style={{ display: "flex", gap: "8px" }}>
-    <select
-      value={form.codigoPais}
-      onChange={e => setForm(f => ({ ...f, codigoPais: e.target.value }))}
-      style={{ ...inputStyle, width: "140px", flexShrink: 0 }}
-    >
-      <option value="51">🇵🇪 +51 Perú</option>
-      <option value="1">🇺🇸 +1 EE.UU.</option>
-      <option value="52">🇲🇽 +52 México</option>
-      <option value="54">🇦🇷 +54 Argentina</option>
-      <option value="56">🇨🇱 +56 Chile</option>
-      <option value="57">🇨🇴 +57 Colombia</option>
-      <option value="58">🇻🇪 +58 Venezuela</option>
-      <option value="591">🇧🇴 +591 Bolivia</option>
-      <option value="593">🇪🇨 +593 Ecuador</option>
-      <option value="595">🇵🇾 +595 Paraguay</option>
-      <option value="598">🇺🇾 +598 Uruguay</option>
-      <option value="34">🇪🇸 +34 España</option>
-      <option value="44">🇬🇧 +44 Reino Unido</option>
-    </select>
-    <input
-      style={{ ...inputStyle, flex: 1 }}
-      value={form.numeroLocal}
-      onChange={e => setForm(f => ({ ...f, numeroLocal: e.target.value.replace(/\D/g, "") }))}
-      placeholder="987456321"
-    />
-  </div>
-</Campo>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <select
+                value={form.codigoPais}
+                onChange={e => setForm(f => ({ ...f, codigoPais: e.target.value }))}
+                style={{ ...inputStyle, width: "140px", flexShrink: 0 }}
+              >
+                <option value="51">PE +51 Perú</option>
+                <option value="1">US +1 EE.UU.</option>
+                <option value="52">MX +52 México</option>
+                <option value="54">AR +54 Argentina</option>
+                <option value="56">CL +56 Chile</option>
+                <option value="57">CO +57 Colombia</option>
+                <option value="58">VE +58 Venezuela</option>
+                <option value="591">BO +591 Bolivia</option>
+                <option value="593">EC +593 Ecuador</option>
+                <option value="595">PY +595 Paraguay</option>
+                <option value="598">UY +598 Uruguay</option>
+                <option value="34">ES +34 España</option>
+                <option value="44">GB +44 Reino Unido</option>
+              </select>
+              <input
+                style={{ ...inputStyle, flex: 1 }}
+                value={form.numeroLocal}
+                onChange={e => setForm(f => ({ ...f, numeroLocal: e.target.value.replace(/\D/g, "") }))}
+                placeholder="987456321"
+              />
+            </div>
+          </Campo>
 
           <Campo label="Gmail admin" hint="No se puede cambiar desde aquí">
             <input style={{ ...inputStyle, background: "#FAFAFA", color: "#aaa" }}
@@ -179,16 +187,6 @@ const [form, setForm] = useState({
           </div>
           <p style={{ margin: "8px 0 0", fontSize: "12px", color: "#bbb" }}>Presiona Enter o click en Agregar</p>
         </div>
-      </div>
-
-      {/* Botón guardar */}
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <button onClick={guardar} disabled={cargando} style={{
-          padding: "12px 32px", borderRadius: "10px", border: "none",
-          background: "#534AB7", color: "white", fontSize: "15px", fontWeight: "600",
-          cursor: cargando ? "not-allowed" : "pointer", fontFamily: "'DM Sans', sans-serif",
-          opacity: cargando ? 0.7 : 1,
-        }}>{cargando ? "Guardando..." : "Guardar cambios"}</button>
       </div>
     </div>
   )

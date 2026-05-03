@@ -8,7 +8,7 @@ function parseDate(str) {
   return new Date(parseInt(y), parseInt(m) - 1, parseInt(d))
 }
 
-function estaEnRango(fecha, filtro) {
+function estaEnRango(fecha, filtro, inicio, fin) {
   const d = parseDate(fecha)
   if (!d) return false
   const hoy = new Date()
@@ -20,6 +20,15 @@ function estaEnRango(fecha, filtro) {
     return d >= lunes
   }
   if (filtro === "Este mes") return d.getMonth() === hoy.getMonth() && d.getFullYear() === hoy.getFullYear()
+  if (filtro === "Personalizado") {
+    const dInicio = inicio ? new Date(inicio) : null
+    const dFin = fin ? new Date(fin) : null
+    if (dInicio) dInicio.setHours(0, 0, 0, 0)
+    if (dFin) dFin.setHours(23, 59, 59, 999)
+    if (dInicio && d < dInicio) return false
+    if (dFin && d > dFin) return false
+    return true
+  }
   return true
 }
 
@@ -35,20 +44,22 @@ function initials(name) {
   return name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
 }
 
-const FILTROS = ["Hoy", "Esta semana", "Este mes", "Todo"]
+const FILTROS = ["Hoy", "Esta semana", "Este mes", "Todo", "Personalizado"]
 const ESTADOS = ["Todos", "Confirmada", "Cancelada"]
 
 export default function ReservasClient({ reservas, empresa, sucursales: propSucursales }) {
   const [filtroTiempo, setFiltroTiempo] = useState("Todo")
   const [filtroEstado, setFiltroEstado] = useState("Todos")
+  const [filtroSucursal, setFiltroSucursal] = useState("Todas")
   const [busqueda, setBusqueda] = useState("")
+  const [fechaInicio, setFechaInicio] = useState("")
+  const [fechaFin, setFechaFin] = useState("")
 
   const sucursales = propSucursales || [...new Set(reservas.map(r => r.Sucursal).filter(Boolean))]
-  const [filtroSucursal, setFiltroSucursal] = useState("Todas")
 
   const filtradas = useMemo(() => {
     return reservas.filter(r => {
-      const enRango = estaEnRango(r.Fecha, filtroTiempo)
+      const enRango = estaEnRango(r.Fecha, filtroTiempo, fechaInicio, fechaFin)
       const enEstado = filtroEstado === "Todos" || (r.Estado || "").toLowerCase() === filtroEstado.toLowerCase()
       const enSucursal = filtroSucursal === "Todas" || r.Sucursal === filtroSucursal
       const enBusqueda = !busqueda ||
@@ -62,7 +73,7 @@ export default function ReservasClient({ reservas, empresa, sucursales: propSucu
       if (!da || !db) return 0
       return db - da || (a.Hora || "").localeCompare(b.Hora || "")
     })
-  }, [reservas, filtroTiempo, filtroEstado, filtroSucursal, busqueda])
+  }, [reservas, filtroTiempo, filtroEstado, filtroSucursal, busqueda, fechaInicio, fechaFin])
 
   const pill = (label, active, onClick) => (
     <button key={label} onClick={onClick} style={{
@@ -75,10 +86,22 @@ export default function ReservasClient({ reservas, empresa, sucursales: propSucu
     }}>{label}</button>
   )
 
+  const dateInput = (value, onChange) => (
+    <input
+      type="date"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      style={{
+        padding: "6px 10px", borderRadius: "10px",
+        border: "1.5px solid #534AB7", fontSize: "13px",
+        fontFamily: "'DM Sans', sans-serif", color: "#1a1a2e",
+      }}
+    />
+  )
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px", fontFamily: "'DM Sans', sans-serif" }}>
 
-      {/* Header */}
       <div>
         <h1 style={{ margin: 0, fontSize: "26px", fontWeight: "700", color: "#1a1a2e" }}>Reservas</h1>
         <p style={{ margin: "4px 0 0", color: "#888", fontSize: "14px" }}>{filtradas.length} reservas encontradas</p>
@@ -88,47 +111,53 @@ export default function ReservasClient({ reservas, empresa, sucursales: propSucu
       <div style={{
         background: "white", borderRadius: "14px", padding: "16px 20px",
         boxShadow: "0 1px 8px rgba(83,74,183,0.08)",
-        display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center",
+        display: "flex", flexDirection: "column", gap: "12px",
       }}>
 
-        {/* Búsqueda */}
-        <input
-          type="text"
-          placeholder="Buscar cliente, teléfono, especialista..."
-          value={busqueda}
-          onChange={e => setBusqueda(e.target.value)}
-          style={{
-            padding: "8px 14px", borderRadius: "20px",
-            border: "1.5px solid #E8E8F0", fontSize: "13px",
-            fontFamily: "'DM Sans', sans-serif", outline: "none",
-            width: "260px", color: "#1a1a2e",
-          }}
-        />
-
-        <div style={{ width: "1px", height: "24px", background: "#E8E8F0" }} />
-
-        {/* Período */}
-        <span style={{ fontSize: "13px", fontWeight: "600", color: "#534AB7" }}>Período:</span>
-        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-          {FILTROS.map(f => pill(f, filtroTiempo === f, () => setFiltroTiempo(f)))}
+        {/* Fila 1: búsqueda + período + fechas */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
+          <input
+            type="text"
+            placeholder="Buscar cliente, teléfono, especialista..."
+            value={busqueda}
+            onChange={e => setBusqueda(e.target.value)}
+            style={{
+              padding: "8px 14px", borderRadius: "20px",
+              border: "1.5px solid #E8E8F0", fontSize: "13px",
+              fontFamily: "'DM Sans', sans-serif", outline: "none",
+              width: "240px", color: "#1a1a2e",
+            }}
+          />
+          <div style={{ width: "1px", height: "24px", background: "#E8E8F0" }} />
+          <span style={{ fontSize: "13px", fontWeight: "600", color: "#534AB7" }}>Período:</span>
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+            {FILTROS.map(f => pill(f, filtroTiempo === f, () => setFiltroTiempo(f)))}
+          </div>
+          {filtroTiempo === "Personalizado" && (
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              {dateInput(fechaInicio, setFechaInicio)}
+              <span style={{ fontSize: "13px", color: "#888" }}>—</span>
+              {dateInput(fechaFin, setFechaFin)}
+            </div>
+          )}
         </div>
 
-        <div style={{ width: "1px", height: "24px", background: "#E8E8F0" }} />
-
-        {/* Estado */}
-        <span style={{ fontSize: "13px", fontWeight: "600", color: "#888" }}>Estado:</span>
-        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-          {ESTADOS.map(e => pill(e, filtroEstado === e, () => setFiltroEstado(e)))}
+        {/* Fila 2: estado + sucursal */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center", paddingTop: "12px", borderTop: "1px solid #F0EEFF" }}>
+          <span style={{ fontSize: "13px", fontWeight: "600", color: "#888" }}>Estado:</span>
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+            {ESTADOS.map(e => pill(e, filtroEstado === e, () => setFiltroEstado(e)))}
+          </div>
+          {sucursales.length > 1 && (
+            <>
+              <div style={{ width: "1px", height: "24px", background: "#E8E8F0" }} />
+              <span style={{ fontSize: "13px", fontWeight: "600", color: "#888" }}>Sucursal:</span>
+              <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                {["Todas", ...sucursales].map(s => pill(s, filtroSucursal === s, () => setFiltroSucursal(s)))}
+              </div>
+            </>
+          )}
         </div>
-
-        {sucursales.length > 1 && (
-  <div style={{ width: "100%", display: "flex", gap: "12px", alignItems: "center", paddingTop: "8px", borderTop: "1px solid #F0EEFF" }}>
-    <span style={{ fontSize: "13px", fontWeight: "600", color: "#888" }}>Sucursal:</span>
-    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-      {["Todas", ...sucursales].map(s => pill(s, filtroSucursal === s, () => setFiltroSucursal(s)))}
-    </div>
-  </div>
-)}
       </div>
 
       {/* Tabla */}
@@ -196,4 +225,4 @@ export default function ReservasClient({ reservas, empresa, sucursales: propSucu
       </div>
     </div>
   )
-}   
+}
