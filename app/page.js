@@ -290,60 +290,65 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="pricing" id="precios">
-        <div className="pricing-inner">
-          <div className="reveal">
-            <span className="section-label">Planes</span>
-            <h2 className="section-title" style={{margin:'0 auto 16px'}}>Simple, sin sorpresas</h2>
-            <p className="section-sub" style={{margin:'0 auto'}}>Elige el plan que se adapta a tu negocio. Cancela cuando quieras.</p>
-          </div>
-          <div className="pricing-cards">
-            <div className="pricing-card reveal reveal-delay-1">
-              <div className="pricing-plan">Básico</div>
-              <div className="pricing-price">S/40</div>
-              <div className="pricing-period">/mes</div>
-              <div className="pricing-desc">Perfecto para comenzar a automatizar tus reservas desde hoy mismo.</div>
-              <ul className="pricing-features">
-                <li className="pricing-feature">1 especialista</li>
-                <li className="pricing-feature">Formulario de reservas</li>
-                <li className="pricing-feature">Notificación al dueño</li>
-                <li className="pricing-feature">Google Calendar sincronizado</li>
-                <li className="pricing-feature">Registro en Google Sheets</li>
-              </ul>
-              <a href="#contacto" className="pricing-btn pricing-btn-outline">Empezar →</a>
-            </div>
-            <div className="pricing-card featured reveal reveal-delay-2">
-              <div className="featured-badge">Más popular</div>
-              <div className="pricing-plan">Regular</div>
-              <div className="pricing-price">S/60</div>
-              <div className="pricing-period">/mes</div>
-              <div className="pricing-desc">Para negocios en crecimiento que necesitan más control y automatización.</div>
-              <ul className="pricing-features">
-                <li className="pricing-feature">Hasta 3 especialistas</li>
-                <li className="pricing-feature">Todo del plan Básico</li>
-                <li className="pricing-feature">Confirmación al cliente por WhatsApp</li>
-                <li className="pricing-feature">Cancelación con link</li>
-                <li className="pricing-feature">Panel de administración</li>
-              </ul>
-              <a href="#contacto" className="pricing-btn pricing-btn-white">Empezar →</a>
-            </div>
-            <div className="pricing-card reveal reveal-delay-3">
-              <div className="pricing-plan">Pro</div>
-              <div className="pricing-price">S/70</div>
-              <div className="pricing-period">/mes</div>
-              <div className="pricing-desc">El sistema completo para negocios que quieren automatizar todo.</div>
-              <ul className="pricing-features">
-                <li className="pricing-feature">Especialistas ilimitados</li>
-                <li className="pricing-feature">Todo del plan Regular</li>
-                <li className="pricing-feature">Dashboard de ingresos y métricas</li>
-                <li className="pricing-feature">Recordatorios automáticos</li>
-                <li className="pricing-feature">Clientes top y analytics</li>
-              </ul>
-              <a href="#contacto" className="pricing-btn pricing-btn-outline">Empezar →</a>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* PRICING */}
+<section className="pricing" id="precios">
+  <div className="pricing-inner">
+    <div className="reveal">
+      <span className="section-label">Planes</span>
+      <h2 className="section-title" style={{margin:'0 auto 16px'}}>Simple, sin sorpresas</h2>
+      <p className="section-sub" style={{margin:'0 auto'}}>Elige el plan que se adapta a tu negocio. Cancela cuando quieras.</p>
+    </div>
+    <div className="pricing-cards">
+
+      <div className="pricing-card reveal reveal-delay-1">
+        <div className="pricing-plan">Básico</div>
+        <div className="pricing-price">S/69</div>
+        <div className="pricing-period">/mes</div>
+        <div className="pricing-desc">Ideal para negocios que recién empiezan a automatizar sus reservas.</div>
+        <ul className="pricing-features">
+          <li className="pricing-feature">Hasta 400 reservas al mes</li>
+          <li className="pricing-feature">Especialistas y servicios ilimitados</li>
+          <li className="pricing-feature">Formulario de reservas online</li>
+          <li className="pricing-feature">Confirmación automática al cliente y al dueño por WhatsApp</li>
+          <li className="pricing-feature">Cancelación con link</li>
+          <li className="pricing-feature">Google Calendar sincronizado</li>
+          <li className="pricing-feature">Panel de administración completo</li>
+          <li className="pricing-feature">Dashboard de ingresos y métricas</li>
+        </ul>
+        <a href="#contacto" className="pricing-btn pricing-btn-outline">Empezar →</a>
+      </div>
+
+      <div className="pricing-card featured reveal reveal-delay-2">
+        <div className="featured-badge">Más popular</div>
+        <div className="pricing-plan">Regular</div>
+        <div className="pricing-price">S/129</div>
+        <div className="pricing-period">/mes</div>
+        <div className="pricing-desc">Para negocios en crecimiento que necesitan más control y automatización.</div>
+        <ul className="pricing-features">
+          <li className="pricing-feature">Hasta 1,200 reservas al mes</li>
+          <li className="pricing-feature">Todo lo del plan Básico</li>
+          <li className="pricing-feature">Recordatorio automático 24 horas antes</li>
+          <li className="pricing-feature">Recordatorio automático 2 horas antes</li>
+        </ul>
+        <a href="#contacto" className="pricing-btn pricing-btn-white">Empezar →</a>
+      </div>
+
+      <div className="pricing-card reveal reveal-delay-3">
+        <div className="pricing-plan">Pro</div>
+        <div className="pricing-price">S/229</div>
+        <div className="pricing-period">/mes</div>
+        <div className="pricing-desc">El sistema completo para negocios que quieren automatizar todo.</div>
+        <ul className="pricing-features">
+          <li className="pricing-feature">Hasta 3,000 reservas al mes</li>
+          <li className="pricing-feature">Todo lo del plan Regular</li>
+          <li className="pricing-feature">Soporte prioritario en 24h hábiles</li>
+        </ul>
+        <a href="#contacto" className="pricing-btn pricing-btn-outline">Empezar →</a>
+      </div>
+
+    </div>
+  </div>
+</section>
 
       <section className="cta-section" id="contacto">
         <div className="reveal">
