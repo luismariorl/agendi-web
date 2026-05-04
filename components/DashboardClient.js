@@ -178,7 +178,7 @@ export default function DashboardClient({ empresa, reservas, sucursales }) {
   )
 
   const stats = [
-    { label: "Total reservas", value: filtradasActivas.length, color: "#534AB7", sub: filtroTiempo },
+    { label: "Reservas exitosas", value: filtradasActivas.length, color: "#534AB7", sub: filtroTiempo },
     { label: "Ingresos estimados", value: `S/${ingresos}`, color: "#16a34a", sub: "sin canceladas" },
     { label: "Clientes nuevos", value: clientesNuevos, color: "#f59e0b", sub: "primera vez" },
     { label: "Cancelaciones", value: canceladas, color: "#dc2626", sub: filtroTiempo },
