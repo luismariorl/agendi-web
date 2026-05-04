@@ -72,6 +72,7 @@ export default function DashboardClient({ empresa, reservas, sucursales }) {
   const [fechaInicio, setFechaInicio] = useState("")
   const [fechaFin, setFechaFin] = useState("")
 
+  // Todas las reservas en rango y sucursal (incluye canceladas para contar cancelaciones)
   const filtradas = useMemo(() => {
     return reservas.filter(r => {
       const enRango = estaEnRango(r.Fecha, filtroTiempo, fechaInicio, fechaFin)
@@ -80,17 +81,29 @@ export default function DashboardClient({ empresa, reservas, sucursales }) {
     })
   }, [reservas, filtroTiempo, filtroSucursal, fechaInicio, fechaFin])
 
-  const canceladas = filtradas.filter(r => (r.Estado || "").toLowerCase() === "cancelada").length
-  const noCancel = filtradas.filter(r => (r.Estado || "").toLowerCase() !== "cancelada")
-  const ingresos = noCancel.reduce((sum, r) => sum + extraerPrecio(r.Servicio), 0)
+  // Solo reservas activas (sin canceladas) para métricas reales
+  const filtradasActivas = useMemo(() => {
+    return filtradas.filter(r => (r.Estado || "").toLowerCase() !== "cancelada")
+  }, [filtradas])
 
-  const telefonosEnPeriodo = new Set(filtradas.map(r => r.Telefono).filter(Boolean))
+  const canceladas = filtradas.filter(r => (r.Estado || "").toLowerCase() === "cancelada").length
+  const ingresos = filtradasActivas.reduce((sum, r) => sum + extraerPrecio(r.Servicio), 0)
+
+  // Clientes nuevos — solo de reservas activas
+  const telefonosEnPeriodo = new Set(filtradasActivas.map(r => r.Telefono).filter(Boolean))
   const telefonosFuera = new Set(
-    reservas.filter(r => !estaEnRango(r.Fecha, filtroTiempo, fechaInicio, fechaFin)).map(r => r.Telefono).filter(Boolean)
+    reservas
+      .filter(r =>
+        !estaEnRango(r.Fecha, filtroTiempo, fechaInicio, fechaFin) &&
+        (r.Estado || "").toLowerCase() !== "cancelada"
+      )
+      .map(r => r.Telefono)
+      .filter(Boolean)
   )
   const clientesNuevos = [...telefonosEnPeriodo].filter(t => !telefonosFuera.has(t)).length
 
-  const serviciosCount = filtradas.reduce((acc, r) => {
+  // Servicios más pedidos — solo activas
+  const serviciosCount = filtradasActivas.reduce((acc, r) => {
     const s = r.Servicio?.split("—")[0].trim() || "Sin servicio"
     acc[s] = (acc[s] || 0) + 1
     return acc
@@ -98,15 +111,17 @@ export default function DashboardClient({ empresa, reservas, sucursales }) {
   const topServicios = Object.entries(serviciosCount).sort((a, b) => b[1] - a[1]).slice(0, 5)
   const maxServicio = topServicios[0]?.[1] || 1
 
-  const espCount = filtradas.reduce((acc, r) => {
+  // Ocupación equipo — solo activas
+  const espCount = filtradasActivas.reduce((acc, r) => {
     if (r.Especialista) acc[r.Especialista] = (acc[r.Especialista] || 0) + 1
     return acc
   }, {})
-  const totalReservas = filtradas.length || 1
+  const totalReservas = filtradasActivas.length || 1
   const topEsp = Object.entries(espCount).sort((a, b) => b[1] - a[1]).slice(0, 5)
 
+  // Clientes frecuentes — solo activas
   const clientesMap = {}
-  filtradas.forEach(r => {
+  filtradasActivas.forEach(r => {
     const tel = r.Telefono || "sin-tel"
     if (!clientesMap[tel]) {
       clientesMap[tel] = {
@@ -163,7 +178,7 @@ export default function DashboardClient({ empresa, reservas, sucursales }) {
   )
 
   const stats = [
-    { label: "Total reservas", value: filtradas.length, color: "#534AB7", sub: filtroTiempo },
+    { label: "Total reservas", value: filtradasActivas.length, color: "#534AB7", sub: filtroTiempo },
     { label: "Ingresos estimados", value: `S/${ingresos}`, color: "#16a34a", sub: "sin canceladas" },
     { label: "Clientes nuevos", value: clientesNuevos, color: "#f59e0b", sub: "primera vez" },
     { label: "Cancelaciones", value: canceladas, color: "#dc2626", sub: filtroTiempo },
@@ -204,7 +219,6 @@ export default function DashboardClient({ empresa, reservas, sucursales }) {
         </div>
       )}
 
-      {/* Filtros */}
       <div style={{
         background: "white", borderRadius: "14px", padding: "16px 20px",
         boxShadow: "0 1px 8px rgba(83,74,183,0.08)",
