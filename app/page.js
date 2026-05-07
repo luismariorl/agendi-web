@@ -359,16 +359,19 @@ export default function Home() {
       </section>
 
       <footer>
-        <div className="footer-inner">
-          <a href="#" className="footer-logo">Agendi</a>
-          <ul className="footer-links">
-            <li><a href="#como-funciona">Cómo funciona</a></li>
-            <li><a href="#precios">Precios</a></li>
-            <li><a href="mailto:hola@agendi.pe">Contacto</a></li>
-          </ul>
-        </div>
-        <div className="footer-copy">© 2026 Agendi · agendi.pe · Hecho en Perú 🇵🇪</div>
-      </footer>
+  <div className="footer-inner">
+    <a href="#" className="footer-logo">Agendi</a>
+    <ul className="footer-links">
+      <li><a href="#como-funciona">Cómo funciona</a></li>
+      <li><a href="#precios">Precios</a></li>
+      <li><a href="/politicas-de-privacidad">Privacidad</a></li>
+      <li><a href="mailto:soporte@agendi.pe">Contacto</a></li>
+    </ul>
+  </div>
+  <div className="footer-copy">
+    © 2026 Agendi · Operado por ECO DRIVE PLUS S.A.C. · RUC 20613413228 · Hecho en Perú 🇵🇪
+  </div>
+</footer>
 
       <script dangerouslySetInnerHTML={{__html: `
         const observer = new IntersectionObserver((entries) => {
