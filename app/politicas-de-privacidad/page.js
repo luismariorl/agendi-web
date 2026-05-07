@@ -128,7 +128,7 @@ export default function PoliticasPrivacidad() {
 
       <nav className="nav-bar">
         <Link href="/" className="nav-logo">Agendi</Link>
-        <Link href="/" className="back-link">← Volver al inicio</Link>
+        <a href="/" className="back-link">← Volver al inicio</a>
       </nav>
 
       <div className="container">
@@ -313,7 +313,7 @@ export default function PoliticasPrivacidad() {
       </div>
 
       <footer>
-        <p>© 2026 Agendi · Operado por ECO DRIVE PLUS S.A.C. · <Link href="/">Volver al inicio</Link></p>
+        <p>© 2026 Agendi · Operado por ECO DRIVE PLUS S.A.C. · <a href="/">Volver al inicio</a></p>
       </footer>
     </>
   )
