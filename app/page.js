@@ -334,17 +334,18 @@ export default function Home() {
       </div>
 
       <div className="pricing-card reveal reveal-delay-3">
-        <div className="pricing-plan">Pro</div>
-        <div className="pricing-price">S/229</div>
-        <div className="pricing-period">/mes</div>
-        <div className="pricing-desc">El sistema completo para negocios que quieren automatizar todo.</div>
-        <ul className="pricing-features">
-          <li className="pricing-feature">Hasta 3,000 reservas al mes</li>
-          <li className="pricing-feature">Todo lo del plan Regular</li>
-          <li className="pricing-feature">Soporte prioritario en 24h hábiles</li>
-        </ul>
-        <a href="#contacto" className="pricing-btn pricing-btn-outline">Empezar →</a>
-      </div>
+  <div className="pricing-plan">Pro</div>
+  <div className="pricing-price">S/229</div>
+  <div className="pricing-period">/mes</div>
+  <div className="pricing-desc">El sistema completo para negocios que quieren automatizar todo.</div>
+  <ul className="pricing-features">
+    <li className="pricing-feature">Hasta 3,000 reservas al mes</li>
+    <li className="pricing-feature">Todo lo del plan Regular</li>
+    <li className="pricing-feature">Color de marca personalizado en tu formulario</li>
+    <li className="pricing-feature">Soporte prioritario en 24h hábiles</li>
+  </ul>
+  <a href="#contacto" className="pricing-btn pricing-btn-outline">Empezar →</a>
+</div>
 
     </div>
   </div>

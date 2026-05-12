@@ -3,6 +3,11 @@ import { useState, useEffect, use } from 'react';
 
 const DIAS = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
 
+// Colores default (mismos que usa el backend si la empresa no tiene color_marca)
+const COLOR_DEFAULT = '#534AB7';
+const COLOR_DEFAULT_CLARO = '#CECBF6';
+const COLOR_DEFAULT_MUY_CLARO = '#EEEDFE';
+
 export default function ReservaPage({ params }) {
   const { slug } = use(params);
   const [paso, setPaso] = useState(1);
@@ -24,6 +29,11 @@ export default function ReservaPage({ params }) {
   const [enviando, setEnviando] = useState(false);
   const [confirmado, setConfirmado] = useState(false);
 
+  // Colores activos según la empresa (con fallback)
+  const colorMarca = config?.colorMarca || COLOR_DEFAULT;
+  const colorMarcaClaro = config?.colorMarcaClaro || COLOR_DEFAULT_CLARO;
+  const colorMarcaMuyClaro = config?.colorMarcaMuyClaro || COLOR_DEFAULT_MUY_CLARO;
+
   // Cargar config
   useEffect(() => {
     fetch(`/api/config?slug=${slug}`)
@@ -32,11 +42,9 @@ export default function ReservaPage({ params }) {
         if (data.error) { setError(data.error); setLoading(false); return; }
         setConfig(data);
 
-        // Si solo hay 1 sucursal → seleccionarla automáticamente
         const sucursalInicial = data.sucursales?.[0] || null;
         if (!data.tieneSucursales && sucursalInicial) {
           setSucursal(sucursalInicial);
-          // Si además solo hay 1 especialista → seleccionarlo también
           const espDeSucursal = data.especialistas?.filter(e => e.sucursal === sucursalInicial) || [];
           if (espDeSucursal.length === 1) setEspecialista(espDeSucursal[0]);
         }
@@ -45,14 +53,12 @@ export default function ReservaPage({ params }) {
       .catch(() => { setError('Error cargando el negocio'); setLoading(false); });
   }, [slug]);
 
-  // Especialistas filtrados por sucursal
   const especialistasDeSucursal = config?.especialistas?.filter(
     e => !sucursal || e.sucursal === sucursal
   ) || [];
 
   const soloUnEspecialista = especialistasDeSucursal.length === 1;
 
-  // Cuando el cliente elige una sucursal → resetear selecciones y auto-seleccionar si aplica
   const elegirSucursal = (suc) => {
     setSucursal(suc);
     setServicio(null);
@@ -60,7 +66,6 @@ export default function ReservaPage({ params }) {
     setSlots([]);
     setErrorSlots(null);
     setHoraSeleccionada(null);
-    // Auto-seleccionar especialista si solo hay 1 en esa sucursal
     const espDeSuc = config?.especialistas?.filter(e => e.sucursal === suc) || [];
     if (espDeSuc.length === 1) {
       setEspecialista(espDeSuc[0]);
@@ -70,7 +75,6 @@ export default function ReservaPage({ params }) {
     setPaso(2);
   };
 
-  // Cargar slots
   useEffect(() => {
     if (!fecha || !especialista || !servicio) return;
 
@@ -88,8 +92,8 @@ export default function ReservaPage({ params }) {
     setHoraSeleccionada(null);
 
     const horaInicioParam = especialista.turnos.map(t => t.inicio).join('|');
-const horaFinParam = especialista.turnos.map(t => t.fin).join('|');
-const url = `/api/slots?calendarId=${encodeURIComponent(especialista.calendar_id)}&fecha=${fecha}&duracion=${servicio.duracion || 60}&horaInicio=${encodeURIComponent(horaInicioParam)}&horaFin=${encodeURIComponent(horaFinParam)}`;
+    const horaFinParam = especialista.turnos.map(t => t.fin).join('|');
+    const url = `/api/slots?calendarId=${encodeURIComponent(especialista.calendar_id)}&fecha=${fecha}&duracion=${servicio.duracion || 60}&horaInicio=${encodeURIComponent(horaInicioParam)}&horaFin=${encodeURIComponent(horaFinParam)}`;
 
     fetch(url)
       .then(r => r.json())
@@ -143,7 +147,12 @@ const url = `/api/slots?calendarId=${encodeURIComponent(especialista.calendar_id
   const hoy = new Date().toISOString().split('T')[0];
   const pasoBase = tieneSucursales ? paso : paso + 1;
 
-  if (loading) return <div style={s.center}><div style={s.spinner}></div><p style={s.muted}>Cargando...</p></div>;
+  if (loading) return (
+    <div style={s.center}>
+      <div style={{ ...s.spinner, borderTopColor: colorMarca, borderColor: colorMarcaMuyClaro }}></div>
+      <p style={s.muted}>Cargando...</p>
+    </div>
+  );
   if (error) return <div style={s.center}><p style={{ color: '#991B1B' }}>❌ {error}</p></div>;
 
   if (confirmado) return (
@@ -163,14 +172,14 @@ const url = `/api/slots?calendarId=${encodeURIComponent(especialista.calendar_id
 
   return (
     <div style={s.page}>
-      <div style={s.header}>
+      <div style={{ ...s.header, background: colorMarca }}>
         <h1 style={s.headerTitle}>{config?.nombreNegocio}</h1>
-        <p style={s.headerSub}>Reserva tu cita en segundos</p>
+        <p style={{ ...s.headerSub, color: colorMarcaClaro }}>Reserva tu cita en segundos</p>
       </div>
 
       <div style={s.progressWrap}>
         {labelsBase.map((_, i) => (
-          <div key={i} style={{ ...s.progressStep, background: paso > i ? '#534AB7' : '#E2E1F5' }} />
+          <div key={i} style={{ ...s.progressStep, background: paso > i ? colorMarca : '#E2E1F5' }} />
         ))}
       </div>
       <p style={{ textAlign: 'center', fontSize: 13, color: '#6B69A0', margin: '8px 0 0' }}>
@@ -187,10 +196,10 @@ const url = `/api/slots?calendarId=${encodeURIComponent(especialista.calendar_id
               {config.sucursales.map(suc => (
                 <div key={suc}
                   onClick={() => elegirSucursal(suc)}
-                  style={{ ...s.option, borderColor: sucursal === suc ? '#534AB7' : '#E2E1F5', background: sucursal === suc ? '#EEEDFE' : 'white' }}>
+                  style={{ ...s.option, borderColor: sucursal === suc ? colorMarca : '#E2E1F5', background: sucursal === suc ? colorMarcaMuyClaro : 'white' }}>
                   <div style={{ fontSize: 20 }}>📍</div>
                   <div style={s.optName}>{suc}</div>
-                  {sucursal === suc && <span style={{ marginLeft: 'auto', color: '#534AB7', fontWeight: 700 }}>✓</span>}
+                  {sucursal === suc && <span style={{ marginLeft: 'auto', color: colorMarca, fontWeight: 700 }}>✓</span>}
                 </div>
               ))}
             </div>
@@ -208,22 +217,22 @@ const url = `/api/slots?calendarId=${encodeURIComponent(especialista.calendar_id
             )}
             <div style={s.list}>
               {config.servicios
-  .filter(sv =>
-    !sv.sucursales || sv.sucursales.length === 0 ||
-    !sucursal ||
-    sv.sucursales.includes(sucursal)
-  )
-  .map(sv => (
-                <div key={sv.nombre}
-                  onClick={() => { setServicio(sv); setPaso(paso + 1); }}
-                  style={{ ...s.option, borderColor: servicio?.nombre === sv.nombre ? '#534AB7' : '#E2E1F5', background: servicio?.nombre === sv.nombre ? '#EEEDFE' : 'white' }}>
-                  <div>
-                    <div style={s.optName}>{sv.nombre}</div>
-                    <div style={s.muted}>{sv.duracion} min</div>
+                .filter(sv =>
+                  !sv.sucursales || sv.sucursales.length === 0 ||
+                  !sucursal ||
+                  sv.sucursales.includes(sucursal)
+                )
+                .map(sv => (
+                  <div key={sv.nombre}
+                    onClick={() => { setServicio(sv); setPaso(paso + 1); }}
+                    style={{ ...s.option, borderColor: servicio?.nombre === sv.nombre ? colorMarca : '#E2E1F5', background: servicio?.nombre === sv.nombre ? colorMarcaMuyClaro : 'white' }}>
+                    <div>
+                      <div style={s.optName}>{sv.nombre}</div>
+                      <div style={s.muted}>{sv.duracion} min</div>
+                    </div>
+                    <div style={{ marginLeft: 'auto', fontWeight: 600, color: colorMarca }}>S/ {sv.precio}</div>
                   </div>
-                  <div style={{ marginLeft: 'auto', fontWeight: 600, color: '#534AB7' }}>S/ {sv.precio}</div>
-                </div>
-              ))}
+                ))}
             </div>
             {tieneSucursales && <button onClick={() => setPaso(1)} style={s.btnBack}>← Volver</button>}
           </div>
@@ -241,10 +250,10 @@ const url = `/api/slots?calendarId=${encodeURIComponent(especialista.calendar_id
                   {especialistasDeSucursal.map(e => (
                     <div key={e.nombre}
                       onClick={() => { setEspecialista(e); setSlots([]); setErrorSlots(null); setHoraSeleccionada(null); }}
-                      style={{ ...s.option, borderColor: especialista?.nombre === e.nombre ? '#534AB7' : '#E2E1F5', background: especialista?.nombre === e.nombre ? '#EEEDFE' : 'white' }}>
-                      <div style={s.avatar}>{e.nombre[0]}</div>
+                      style={{ ...s.option, borderColor: especialista?.nombre === e.nombre ? colorMarca : '#E2E1F5', background: especialista?.nombre === e.nombre ? colorMarcaMuyClaro : 'white' }}>
+                      <div style={{ ...s.avatar, background: colorMarcaMuyClaro, color: colorMarca }}>{e.nombre[0]}</div>
                       <div style={s.optName}>{e.nombre}</div>
-                      {especialista?.nombre === e.nombre && <span style={{ marginLeft: 'auto', color: '#534AB7', fontWeight: 700 }}>✓</span>}
+                      {especialista?.nombre === e.nombre && <span style={{ marginLeft: 'auto', color: colorMarca, fontWeight: 700 }}>✓</span>}
                     </div>
                   ))}
                 </div>
@@ -252,8 +261,8 @@ const url = `/api/slots?calendarId=${encodeURIComponent(especialista.calendar_id
             )}
 
             {soloUnEspecialista && especialista && (
-              <div style={{ background: '#EEEDFE', borderRadius: 12, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={s.avatar}>{especialista.nombre[0]}</div>
+              <div style={{ background: colorMarcaMuyClaro, borderRadius: 12, padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ ...s.avatar, background: colorMarcaMuyClaro, color: colorMarca }}>{especialista.nombre[0]}</div>
                 <div>
                   <div style={s.optName}>{especialista.nombre}</div>
                   <div style={s.muted}>{especialista.hora_inicio} — {especialista.hora_fin}</div>
@@ -273,7 +282,7 @@ const url = `/api/slots?calendarId=${encodeURIComponent(especialista.calendar_id
             )}
 
             <button onClick={() => setPaso(paso + 1)} disabled={!especialista || !fecha}
-              style={{ ...s.btn, opacity: (!especialista || !fecha) ? 0.5 : 1 }}>
+              style={{ ...s.btn, background: colorMarca, opacity: (!especialista || !fecha) ? 0.5 : 1 }}>
               Ver horarios disponibles →
             </button>
             <button onClick={() => setPaso(paso - 1)} style={s.btnBack}>← Volver</button>
@@ -286,7 +295,12 @@ const url = `/api/slots?calendarId=${encodeURIComponent(especialista.calendar_id
             <h2 style={s.stepTitle}>Elige tu horario</h2>
             <p style={{ fontSize: 14, color: '#6B69A0', margin: '0 0 20px' }}>{especialista.nombre} · {fecha}</p>
 
-            {loadingSlots && <div style={s.center}><div style={s.spinner}></div><p style={s.muted}>Consultando disponibilidad...</p></div>}
+            {loadingSlots && (
+              <div style={s.center}>
+                <div style={{ ...s.spinner, borderTopColor: colorMarca, borderColor: colorMarcaMuyClaro }}></div>
+                <p style={s.muted}>Consultando disponibilidad...</p>
+              </div>
+            )}
             {!loadingSlots && errorSlots && <p style={{ color: '#991B1B', fontSize: 14, textAlign: 'center', padding: '16px 0' }}>⚠️ {errorSlots}</p>}
             {!loadingSlots && !errorSlots && slots.length === 0 && <p style={{ color: '#6B69A0', fontSize: 14, textAlign: 'center', padding: '24px 0' }}>No hay horarios disponibles. Prueba otra fecha.</p>}
 
@@ -297,8 +311,8 @@ const url = `/api/slots?calendarId=${encodeURIComponent(especialista.calendar_id
                     onClick={() => slot.disponible && setHoraSeleccionada(slot)}
                     style={{
                       ...s.slot,
-                      background: !slot.disponible ? '#F1F0FA' : horaSeleccionada?.hora24 === slot.hora24 ? '#534AB7' : '#EEEDFE',
-                      color: !slot.disponible ? '#9896C8' : horaSeleccionada?.hora24 === slot.hora24 ? 'white' : '#534AB7',
+                      background: !slot.disponible ? '#F1F0FA' : horaSeleccionada?.hora24 === slot.hora24 ? colorMarca : colorMarcaMuyClaro,
+                      color: !slot.disponible ? '#9896C8' : horaSeleccionada?.hora24 === slot.hora24 ? 'white' : colorMarca,
                       cursor: slot.disponible ? 'pointer' : 'not-allowed',
                       textDecoration: !slot.disponible ? 'line-through' : 'none',
                       opacity: !slot.disponible ? 0.5 : 1,
@@ -310,7 +324,7 @@ const url = `/api/slots?calendarId=${encodeURIComponent(especialista.calendar_id
             )}
 
             <button onClick={() => setPaso(paso + 1)} disabled={!horaSeleccionada}
-              style={{ ...s.btn, opacity: !horaSeleccionada ? 0.5 : 1 }}>
+              style={{ ...s.btn, background: colorMarca, opacity: !horaSeleccionada ? 0.5 : 1 }}>
               Continuar →
             </button>
             <button onClick={() => setPaso(paso - 1)} style={s.btnBack}>← Volver</button>
@@ -334,7 +348,7 @@ const url = `/api/slots?calendarId=${encodeURIComponent(especialista.calendar_id
             <p style={s.label}>Notas (opcional)</p>
             <textarea placeholder="Ej: Quiero uñas en rojo" value={notas} onChange={e => setNotas(e.target.value)} style={{ ...s.input, height: 80, resize: 'vertical' }} />
             <button onClick={handleConfirmar} disabled={!nombre || !telefono || enviando}
-              style={{ ...s.btn, opacity: (!nombre || !telefono) ? 0.5 : 1 }}>
+              style={{ ...s.btn, background: colorMarca, opacity: (!nombre || !telefono) ? 0.5 : 1 }}>
               {enviando ? 'Enviando...' : 'Confirmar reserva ✓'}
             </button>
             <button onClick={() => setPaso(paso - 1)} style={s.btnBack}>← Volver</button>
@@ -352,9 +366,9 @@ const url = `/api/slots?calendarId=${encodeURIComponent(especialista.calendar_id
 
 const s = {
   page: { minHeight: '100vh', background: '#F8F8FC', fontFamily: "'DM Sans', system-ui, sans-serif", padding: '0 0 40px' },
-  header: { background: '#534AB7', padding: '32px 24px 24px', textAlign: 'center' },
+  header: { padding: '32px 24px 24px', textAlign: 'center' },
   headerTitle: { color: 'white', fontSize: 24, fontWeight: 600, margin: 0 },
-  headerSub: { color: '#CECBF6', fontSize: 14, margin: '6px 0 0' },
+  headerSub: { fontSize: 14, margin: '6px 0 0' },
   progressWrap: { display: 'flex', gap: 6, padding: '20px 24px 0', maxWidth: 480, margin: '0 auto' },
   progressStep: { flex: 1, height: 4, borderRadius: 2, transition: 'background 0.3s' },
   card: { background: 'white', borderRadius: 20, margin: '20px auto', padding: '24px', boxShadow: '0 4px 24px rgba(83,74,183,0.08)', maxWidth: 480 },
@@ -363,15 +377,15 @@ const s = {
   list: { display: 'flex', flexDirection: 'column', gap: 10, margin: '8px 0' },
   option: { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 12, border: '1.5px solid', cursor: 'pointer', transition: 'all 0.2s' },
   optName: { fontSize: 15, fontWeight: 500, color: '#1A1834' },
-  avatar: { width: 36, height: 36, borderRadius: '50%', background: '#EEEDFE', color: '#534AB7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 600, flexShrink: 0 },
+  avatar: { width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 600, flexShrink: 0 },
   input: { width: '100%', padding: '12px 14px', borderRadius: 10, border: '1.5px solid #E2E1F5', fontSize: 15, fontFamily: 'inherit', outline: 'none', color: '#1A1834', display: 'block' },
   slotsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, margin: '16px 0 24px' },
   slot: { padding: '12px 8px', borderRadius: 10, textAlign: 'center', fontSize: 14, fontWeight: 500, transition: 'all 0.2s' },
-  btn: { width: '100%', background: '#534AB7', color: 'white', border: 'none', borderRadius: 50, padding: '16px', fontSize: 16, fontWeight: 500, cursor: 'pointer', marginTop: 16, fontFamily: 'inherit' },
+  btn: { width: '100%', color: 'white', border: 'none', borderRadius: 50, padding: '16px', fontSize: 16, fontWeight: 500, cursor: 'pointer', marginTop: 16, fontFamily: 'inherit' },
   btnBack: { width: '100%', background: 'transparent', color: '#6B69A0', border: 'none', padding: '12px', fontSize: 14, cursor: 'pointer', marginTop: 8, fontFamily: 'inherit' },
   resumen: { background: '#F8F8FC', borderRadius: 12, padding: '14px 16px', margin: '0 0 20px', border: '1px solid #E2E1F5', fontSize: 14, color: '#3D3B6E', lineHeight: 1.8 },
   center: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 12 },
-  spinner: { width: 32, height: 32, border: '3px solid #EEEDFE', borderTop: '3px solid #534AB7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
+  spinner: { width: 32, height: 32, border: '3px solid', borderTopWidth: 3, borderTopStyle: 'solid', borderRadius: '50%', animation: 'spin 0.8s linear infinite' },
   muted: { color: '#6B69A0', fontSize: 14 },
   confirmBox: { background: 'white', borderRadius: 20, padding: 32, textAlign: 'center', maxWidth: 360, boxShadow: '0 4px 24px rgba(83,74,183,0.08)' },
 };

@@ -9,6 +9,44 @@ const auth = new google.auth.GoogleAuth({
   scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
 });
 
+// Color default si la empresa no tiene color_marca o no es plan Pro
+const COLOR_DEFAULT = '#534AB7';
+
+// Plan que tiene acceso a personalización de color
+const PLAN_CON_COLOR_CUSTOM = 'Pro';
+
+// Valida que el color sea un hex válido (#RRGGBB)
+function validarColor(color) {
+  if (!color) return COLOR_DEFAULT;
+  const regex = /^#[0-9A-Fa-f]{6}$/;
+  if (!regex.test(color.trim())) return COLOR_DEFAULT;
+  return color.trim();
+}
+
+// Genera una versión clara del color (mezcla con blanco al 75%)
+function colorClaro(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const mezcla = 0.75;
+  const nR = Math.round(r + (255 - r) * mezcla);
+  const nG = Math.round(g + (255 - g) * mezcla);
+  const nB = Math.round(b + (255 - b) * mezcla);
+  return `#${nR.toString(16).padStart(2, '0')}${nG.toString(16).padStart(2, '0')}${nB.toString(16).padStart(2, '0')}`;
+}
+
+// Genera una versión muy clara del color (mezcla con blanco al 92%) — para fondos sutiles
+function colorMuyClaro(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const mezcla = 0.92;
+  const nR = Math.round(r + (255 - r) * mezcla);
+  const nG = Math.round(g + (255 - g) * mezcla);
+  const nB = Math.round(b + (255 - b) * mezcla);
+  return `#${nR.toString(16).padStart(2, '0')}${nG.toString(16).padStart(2, '0')}${nB.toString(16).padStart(2, '0')}`;
+}
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const slug = searchParams.get('slug');
@@ -21,9 +59,10 @@ export async function GET(request) {
     const sheets = google.sheets({ version: 'v4', auth });
     const sheetId = process.env.GOOGLE_SHEETS_ID;
 
+    // Rango A:H para leer color_marca (columna H) y plan (columna E)
     const empresasRes = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'Empresas!A:G',
+      range: 'Empresas!A:H',
     });
 
     const empresas = empresasRes.data.values || [];
@@ -42,6 +81,18 @@ export async function GET(request) {
 
     const formId = empresa[headers.indexOf('form_id')];
     const nombreNegocio = empresa[headers.indexOf('nombre_negocio')];
+    const plan = (empresa[headers.indexOf('plan')] || '').trim();
+
+    // Solo aplica color custom si el plan es Pro
+    // Si no es Pro o no tiene color válido, usa el default
+    let colorMarca = COLOR_DEFAULT;
+    if (plan === PLAN_CON_COLOR_CUSTOM) {
+      const colorMarcaRaw = empresa[headers.indexOf('color_marca')] || '';
+      colorMarca = validarColor(colorMarcaRaw);
+    }
+
+    const colorMarcaClaro = colorClaro(colorMarca);
+    const colorMarcaMuyClaro = colorMuyClaro(colorMarca);
 
     const espRes = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
@@ -100,6 +151,9 @@ export async function GET(request) {
       servicios,
       sucursales: sucursalesUnicas,
       tieneSucursales,
+      colorMarca,
+      colorMarcaClaro,
+      colorMarcaMuyClaro,
     });
 
   } catch (error) {
