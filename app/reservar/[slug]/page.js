@@ -272,8 +272,22 @@ export default function ReservaPage({ params }) {
 
             <p style={s.label}>Fecha</p>
             <input type="date" min={hoy} value={fecha}
-              onChange={e => { setFecha(e.target.value); setSlots([]); setErrorSlots(null); setHoraSeleccionada(null); }}
-              style={s.input} />
+  onChange={e => {
+    const fechaSeleccionada = e.target.value;
+    // Bloquear fechas anteriores a hoy aunque las tipeen manualmente
+    if (fechaSeleccionada && fechaSeleccionada < hoy) {
+      setErrorSlots('No puedes seleccionar una fecha pasada.');
+      setFecha('');
+      setSlots([]);
+      setHoraSeleccionada(null);
+      return;
+    }
+    setFecha(fechaSeleccionada);
+    setSlots([]);
+    setErrorSlots(null);
+    setHoraSeleccionada(null);
+  }}
+  style={s.input} />
 
             {especialista && (
               <p style={{ fontSize: 12, color: '#6B69A0', marginTop: 8, marginBottom: 4 }}>

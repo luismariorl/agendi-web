@@ -56,6 +56,25 @@ export async function GET(request) {
 
     const eventos = res.data.items || [];
 
+    // ⏰ Obtener la fecha y hora actual en zona horaria de Lima (-05:00)
+   // Obtener fecha actual en Lima usando Intl (forma confiable)
+const ahora = new Date();
+const formatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Lima',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+const fechaHoyLima = formatter.format(ahora); // "YYYY-MM-DD"
+const esHoy = fechaLimpia === fechaHoyLima;
+
+    console.log('🔍 DEBUG SLOTS:', {
+  fechaHoyLima,
+  fechaLimpia,
+  esHoy,
+  serverNow: new Date().toISOString()
+});
+
     // Generar slots para cada turno y unirlos
     const slots = [];
 
@@ -73,17 +92,28 @@ export async function GET(request) {
         const slotInicio = new Date(`${fechaLimpia}T${horaStr}:00-05:00`);
         const slotFin = new Date(slotInicio.getTime() + duracion * 60000);
 
+        // Verificar si está ocupado por un evento existente
         const ocupado = eventos.some(evento => {
           const eventoInicio = new Date(evento.start.dateTime || evento.start.date);
           const eventoFin = new Date(evento.end.dateTime || evento.end.date);
           return slotInicio < eventoFin && slotFin > eventoInicio;
         });
 
+        // 🆕 Verificar si la hora ya pasó (solo si la fecha es hoy)
+        let yaPaso = false;
+        if (esHoy) {
+          yaPaso = slotInicio <= new Date();
+        }
+
         const period = h >= 12 ? 'pm' : 'am';
         const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h;
         const horaDisplay = `${h12}:${String(m).padStart(2, '0')} ${period}`;
 
-        slots.push({ hora24: horaStr, horaDisplay, disponible: !ocupado });
+        slots.push({
+          hora24: horaStr,
+          horaDisplay,
+          disponible: !ocupado && !yaPaso, // Disponible solo si no está ocupado Y no ha pasado
+        });
         hora += duracion;
       }
     }
