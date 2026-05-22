@@ -3,7 +3,6 @@ import { useState, useEffect, use } from 'react';
 
 const DIAS = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
 
-// Colores default (mismos que usa el backend si la empresa no tiene color_marca)
 const COLOR_DEFAULT = '#534AB7';
 const COLOR_DEFAULT_CLARO = '#CECBF6';
 const COLOR_DEFAULT_MUY_CLARO = '#EEEDFE';
@@ -29,19 +28,16 @@ export default function ReservaPage({ params }) {
   const [enviando, setEnviando] = useState(false);
   const [confirmado, setConfirmado] = useState(false);
 
-  // Colores activos según la empresa (con fallback)
   const colorMarca = config?.colorMarca || COLOR_DEFAULT;
   const colorMarcaClaro = config?.colorMarcaClaro || COLOR_DEFAULT_CLARO;
   const colorMarcaMuyClaro = config?.colorMarcaMuyClaro || COLOR_DEFAULT_MUY_CLARO;
 
-  // Cargar config
   useEffect(() => {
     fetch(`/api/config?slug=${slug}`)
       .then(r => r.json())
       .then(data => {
         if (data.error) { setError(data.error); setLoading(false); return; }
         setConfig(data);
-
         const sucursalInicial = data.sucursales?.[0] || null;
         if (!data.tieneSucursales && sucursalInicial) {
           setSucursal(sucursalInicial);
@@ -151,22 +147,26 @@ export default function ReservaPage({ params }) {
     <div style={s.center}>
       <div style={{ ...s.spinner, borderTopColor: colorMarca, borderColor: colorMarcaMuyClaro }}></div>
       <p style={s.muted}>Cargando...</p>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
   if (error) return <div style={s.center}><p style={{ color: '#991B1B' }}>❌ {error}</p></div>;
 
   if (confirmado) return (
-    <div style={s.center}>
-      <div style={s.confirmBox}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
-        <h2 style={{ fontSize: 22, fontWeight: 600, color: '#1A1834', margin: '0 0 8px' }}>¡Reserva confirmada!</h2>
-        <p style={{ fontSize: 15, color: '#6B69A0', margin: '0 0 20px' }}>Recibirás un WhatsApp con los detalles.</p>
-        <div style={s.resumen}>
-          <p><strong>{config.nombreNegocio}</strong>{sucursal && config.tieneSucursales ? ` — ${sucursal}` : ''}</p>
-          <p>{servicio.nombre} con {especialista.nombre}</p>
-          <p>{fecha} · {horaSeleccionada.horaDisplay}</p>
+    <div style={s.page}>
+      <div style={{ ...s.center }}>
+        <div style={s.confirmBox}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
+          <h2 style={{ fontSize: 22, fontWeight: 600, color: '#1A1834', margin: '0 0 8px' }}>¡Reserva confirmada!</h2>
+          <p style={{ fontSize: 15, color: '#6B69A0', margin: '0 0 20px' }}>Recibirás un WhatsApp con los detalles.</p>
+          <div style={s.resumen}>
+            <p><strong>{config.nombreNegocio}</strong>{sucursal && config.tieneSucursales ? ` — ${sucursal}` : ''}</p>
+            <p>{servicio.nombre} con {especialista.nombre}</p>
+            <p>{fecha} · {horaSeleccionada.horaDisplay}</p>
+          </div>
         </div>
       </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } } * { box-sizing: border-box; }`}</style>
     </div>
   );
 
@@ -188,7 +188,6 @@ export default function ReservaPage({ params }) {
 
       <div style={s.card}>
 
-        {/* PASO SUCURSAL */}
         {tieneSucursales && paso === 1 && (
           <div>
             <h2 style={s.stepTitle}>¿A qué sucursal quieres ir?</h2>
@@ -206,7 +205,6 @@ export default function ReservaPage({ params }) {
           </div>
         )}
 
-        {/* PASO SERVICIO */}
         {pasoBase === 2 && (
           <div>
             <h2 style={s.stepTitle}>¿Qué servicio deseas?</h2>
@@ -238,7 +236,6 @@ export default function ReservaPage({ params }) {
           </div>
         )}
 
-        {/* PASO ESPECIALISTA + FECHA */}
         {pasoBase === 3 && (
           <div>
             <h2 style={s.stepTitle}>{soloUnEspecialista ? '¿Qué día prefieres?' : '¿Con quién y cuándo?'}</h2>
@@ -272,22 +269,21 @@ export default function ReservaPage({ params }) {
 
             <p style={s.label}>Fecha</p>
             <input type="date" min={hoy} value={fecha}
-  onChange={e => {
-    const fechaSeleccionada = e.target.value;
-    // Bloquear fechas anteriores a hoy aunque las tipeen manualmente
-    if (fechaSeleccionada && fechaSeleccionada < hoy) {
-      setErrorSlots('No puedes seleccionar una fecha pasada.');
-      setFecha('');
-      setSlots([]);
-      setHoraSeleccionada(null);
-      return;
-    }
-    setFecha(fechaSeleccionada);
-    setSlots([]);
-    setErrorSlots(null);
-    setHoraSeleccionada(null);
-  }}
-  style={s.input} />
+              onChange={e => {
+                const fechaSeleccionada = e.target.value;
+                if (fechaSeleccionada && fechaSeleccionada < hoy) {
+                  setErrorSlots('No puedes seleccionar una fecha pasada.');
+                  setFecha('');
+                  setSlots([]);
+                  setHoraSeleccionada(null);
+                  return;
+                }
+                setFecha(fechaSeleccionada);
+                setSlots([]);
+                setErrorSlots(null);
+                setHoraSeleccionada(null);
+              }}
+              style={s.input} />
 
             {especialista && (
               <p style={{ fontSize: 12, color: '#6B69A0', marginTop: 8, marginBottom: 4 }}>
@@ -303,7 +299,6 @@ export default function ReservaPage({ params }) {
           </div>
         )}
 
-        {/* PASO SLOTS */}
         {pasoBase === 4 && (
           <div>
             <h2 style={s.stepTitle}>Elige tu horario</h2>
@@ -345,7 +340,6 @@ export default function ReservaPage({ params }) {
           </div>
         )}
 
-        {/* PASO DATOS */}
         {pasoBase === 5 && (
           <div>
             <h2 style={s.stepTitle}>Tus datos</h2>
@@ -379,7 +373,12 @@ export default function ReservaPage({ params }) {
 }
 
 const s = {
-  page: { minHeight: '100vh', background: '#F8F8FC', fontFamily: "'DM Sans', system-ui, sans-serif", padding: '0 0 40px' },
+  page: {
+    minHeight: '100vh',
+    background: 'linear-gradient(160deg, #EEEDFE 0%, #F8F8FC 45%, #E8E6FB 100%)',
+    fontFamily: "'DM Sans', system-ui, sans-serif",
+    padding: '0 0 40px',
+  },
   header: { padding: '32px 24px 24px', textAlign: 'center' },
   headerTitle: { color: 'white', fontSize: 24, fontWeight: 600, margin: 0 },
   headerSub: { fontSize: 14, margin: '6px 0 0' },
@@ -392,10 +391,10 @@ const s = {
   option: { display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 12, border: '1.5px solid', cursor: 'pointer', transition: 'all 0.2s' },
   optName: { fontSize: 15, fontWeight: 500, color: '#1A1834' },
   avatar: { width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 600, flexShrink: 0 },
-  input: { width: '100%', padding: '12px 14px', borderRadius: 10, border: '1.5px solid #E2E1F5', fontSize: 15, fontFamily: 'inherit', outline: 'none', color: '#1A1834', display: 'block' },
+  input: { width: '100%', padding: '12px 14px', borderRadius: 10, border: '1.5px solid #E2E1F5', fontSize: 15, fontFamily: 'inherit', outline: 'none', color: '#1A1834', display: 'block', background: 'white' },
   slotsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, margin: '16px 0 24px' },
   slot: { padding: '12px 8px', borderRadius: 10, textAlign: 'center', fontSize: 14, fontWeight: 500, transition: 'all 0.2s' },
-  btn: { width: '100%', color: 'white', border: 'none', borderRadius: 50, padding: '16px', fontSize: 16, fontWeight: 500, cursor: 'pointer', marginTop: 16, fontFamily: 'inherit' },
+  btn: { width: '100%', color: 'white', border: 'none', borderRadius: 50, padding: '16px', fontSize: 16, fontWeight: 500, cursor: 'pointer', marginTop: 16, fontFamily: 'inherit', transition: 'opacity 0.2s' },
   btnBack: { width: '100%', background: 'transparent', color: '#6B69A0', border: 'none', padding: '12px', fontSize: 14, cursor: 'pointer', marginTop: 8, fontFamily: 'inherit' },
   resumen: { background: '#F8F8FC', borderRadius: 12, padding: '14px 16px', margin: '0 0 20px', border: '1px solid #E2E1F5', fontSize: 14, color: '#3D3B6E', lineHeight: 1.8 },
   center: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 12 },
