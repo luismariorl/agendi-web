@@ -27,39 +27,8 @@ export default function Home() {
         body { font-family: 'DM Sans', sans-serif; color: var(--text); background: var(--white); overflow-x: hidden; }
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap');
 
-        /* ── CURSOR GRADIENT LAYER ── */
-        #cursor-glow {
-          position: fixed;
-          top: 0; left: 0;
-          width: 700px; height: 700px;
-          border-radius: 50%;
-          background: radial-gradient(circle,
-            rgba(83,74,183,0.13) 0%,
-            rgba(206,203,246,0.08) 35%,
-            transparent 70%
-          );
-          pointer-events: none;
-          z-index: 0;
-          transform: translate(-50%, -50%);
-          transition: left 0.18s ease, top 0.18s ease;
-          will-change: left, top;
-        }
-        #cursor-glow-2 {
-          position: fixed;
-          top: 0; left: 0;
-          width: 400px; height: 400px;
-          border-radius: 50%;
-          background: radial-gradient(circle,
-            rgba(127,119,221,0.10) 0%,
-            rgba(206,203,246,0.05) 40%,
-            transparent 70%
-          );
-          pointer-events: none;
-          z-index: 0;
-          transform: translate(-50%, -50%);
-          transition: left 0.35s ease, top 0.35s ease;
-          will-change: left, top;
-        }
+        #cursor-glow { position: fixed; top: 0; left: 0; width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, rgba(83,74,183,0.13) 0%, rgba(206,203,246,0.08) 35%, transparent 70%); pointer-events: none; z-index: 0; transform: translate(-50%, -50%); transition: left 0.18s ease, top 0.18s ease; will-change: left, top; }
+        #cursor-glow-2 { position: fixed; top: 0; left: 0; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, rgba(127,119,221,0.10) 0%, rgba(206,203,246,0.05) 40%, transparent 70%); pointer-events: none; z-index: 0; transform: translate(-50%, -50%); transition: left 0.35s ease, top 0.35s ease; will-change: left, top; }
 
         nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; background: rgba(255,255,255,0.85); backdrop-filter: blur(16px); border-bottom: 1px solid var(--gray-200); transition: box-shadow 0.3s; }
         .nav-logo { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--indigo); text-decoration: none; letter-spacing: -0.5px; }
@@ -73,10 +42,7 @@ export default function Home() {
         .hero::before { content: ''; position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(238,237,254,0.7) 0%, transparent 65%); top: -150px; left: 50%; transform: translateX(-50%); pointer-events: none; animation: breathe 6s ease-in-out infinite; }
         .hero::after { content: ''; position: absolute; width: 400px; height: 400px; background: radial-gradient(circle, rgba(206,203,246,0.3) 0%, transparent 70%); bottom: 0; right: 10%; pointer-events: none; animation: breathe 8s ease-in-out infinite reverse; }
 
-        @keyframes breathe {
-          0%, 100% { transform: translateX(-50%) scale(1); opacity: 1; }
-          50% { transform: translateX(-50%) scale(1.08); opacity: 0.8; }
-        }
+        @keyframes breathe { 0%, 100% { transform: translateX(-50%) scale(1); opacity: 1; } 50% { transform: translateX(-50%) scale(1.08); opacity: 0.8; } }
 
         .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: var(--indigo-pale); color: var(--indigo); font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: 50px; margin-bottom: 32px; border: 1px solid var(--lavender); animation: fadeUp 0.7s ease both; }
         .hero-badge span { width: 6px; height: 6px; background: var(--indigo); border-radius: 50%; display: inline-block; animation: pulse 2s ease-in-out infinite; }
@@ -158,32 +124,21 @@ export default function Home() {
         .dash-bar-fill { height: 6px; border-radius: 4px; background: var(--indigo); transform-origin: left; }
 
         .pricing { background: rgba(248,248,252,0.8); backdrop-filter: blur(8px); }
-        .pricing-inner { max-width: 1100px; margin: 0 auto; text-align: center; }
-        .pricing-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 56px; }
-        .pricing-card { background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); border-radius: var(--radius); padding: 36px 28px; border: 1px solid var(--gray-200); text-align: left; position: relative; transition: transform 0.35s, box-shadow 0.35s, border-color 0.35s; }
-        .pricing-card:hover { transform: translateY(-8px); box-shadow: var(--shadow-md); border-color: var(--lavender); }
-        .pricing-card.featured { background: var(--indigo); border-color: var(--indigo); color: white; }
-        .pricing-card.featured:hover { box-shadow: 0 20px 60px rgba(83,74,183,0.35); border-color: var(--indigo-light); }
-        .pricing-card.featured .pricing-price { color: white; }
-        .pricing-card.featured .pricing-period { color: var(--lavender); }
-        .pricing-card.featured .pricing-desc { color: var(--lavender); }
-        .pricing-card.featured .pricing-feature { color: rgba(255,255,255,0.85); }
-        .pricing-card.featured .pricing-feature::before { color: var(--lavender); }
-        .featured-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--lavender); color: var(--lavender-dark); font-size: 12px; font-weight: 600; padding: 4px 16px; border-radius: 50px; white-space: nowrap; }
-        .pricing-plan { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 16px; }
-        .pricing-card.featured .pricing-plan { color: var(--lavender); }
-        .pricing-price { font-family: 'DM Serif Display', serif; font-size: 48px; letter-spacing: -2px; color: var(--gray-900); line-height: 1; }
-        .pricing-period { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; }
-        .pricing-desc { font-size: 14px; color: var(--text-muted); line-height: 1.5; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--gray-200); }
-        .pricing-card.featured .pricing-desc { border-bottom-color: rgba(255,255,255,0.15); }
-        .pricing-features { list-style: none; display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
-        .pricing-feature { font-size: 14px; color: var(--text-muted); display: flex; align-items: center; gap: 10px; }
-        .pricing-feature::before { content: '✓'; color: var(--indigo); font-weight: 600; }
-        .pricing-btn { display: block; text-align: center; padding: 14px; border-radius: 50px; font-size: 15px; font-weight: 500; text-decoration: none; transition: all 0.25s; }
-        .pricing-btn-outline { border: 1.5px solid var(--gray-200); color: var(--indigo); }
-        .pricing-btn-outline:hover { border-color: var(--indigo); background: var(--indigo-pale); transform: translateY(-1px); }
-        .pricing-btn-white { background: white; color: var(--indigo); }
-        .pricing-btn-white:hover { background: var(--indigo-pale); transform: translateY(-1px); }
+        .pricing-inner { max-width: 680px; margin: 0 auto; text-align: center; }
+        .pricing-card-fundador { background: var(--indigo); border-radius: var(--radius); padding: 48px 40px 32px; border: 1px solid var(--indigo); text-align: left; position: relative; margin-top: 56px; transition: transform 0.35s, box-shadow 0.35s; }
+        .pricing-card-fundador:hover { transform: translateY(-8px); box-shadow: 0 20px 60px rgba(83,74,183,0.35); }
+        .fundador-badge { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: var(--lavender); color: var(--lavender-dark); font-size: 12px; font-weight: 600; padding: 5px 20px; border-radius: 50px; white-space: nowrap; letter-spacing: 0.5px; }
+        .fundador-plan { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: var(--lavender); margin-bottom: 16px; }
+        .fundador-price { font-family: 'DM Serif Display', serif; font-size: 64px; letter-spacing: -2px; color: white; line-height: 1; }
+        .fundador-period { font-size: 16px; color: var(--lavender); margin-bottom: 8px; }
+        .fundador-limit { display: inline-block; font-size: 13px; color: var(--lavender); background: rgba(255,255,255,0.1); padding: 4px 14px; border-radius: 50px; margin-bottom: 24px; }
+        .fundador-desc { font-size: 15px; color: var(--lavender); line-height: 1.5; margin-bottom: 28px; padding-bottom: 28px; border-bottom: 1px solid rgba(255,255,255,0.15); }
+        .fundador-features { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; margin-bottom: 36px; }
+        .fundador-feature { font-size: 14px; color: rgba(255,255,255,0.85); display: flex; align-items: flex-start; gap: 8px; line-height: 1.4; }
+        .fundador-feature::before { content: '✓'; color: var(--lavender); font-weight: 600; flex-shrink: 0; margin-top: 1px; }
+        .fundador-btn { display: block; text-align: center; padding: 16px; border-radius: 50px; font-size: 16px; font-weight: 500; text-decoration: none; transition: all 0.25s; background: white; color: var(--indigo); }
+        .fundador-btn:hover { background: var(--indigo-pale); transform: translateY(-1px); }
+        .fundador-disclaimer { font-size: 11px; color: rgba(206,203,246,0.6); text-align: center; margin-top: 20px; line-height: 1.5; }
 
         .cta-section { background: var(--indigo); padding: 96px 48px; text-align: center; position: relative; overflow: hidden; }
         .cta-section::before { content: ''; position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%); top: -200px; right: -100px; pointer-events: none; animation: breathe 7s ease-in-out infinite; }
@@ -210,7 +165,6 @@ export default function Home() {
         .reveal-delay-1 { transition-delay: 0.12s; }
         .reveal-delay-2 { transition-delay: 0.24s; }
         .reveal-delay-3 { transition-delay: 0.36s; }
-
         .bar-animated { animation: barGrow 1s ease both; }
 
         @media (max-width: 768px) {
@@ -219,8 +173,9 @@ export default function Home() {
           section { padding: 64px 24px; }
           .features-inner { grid-template-columns: 1fr; gap: 40px; }
           .features-inner.reverse { direction: ltr; }
-          .pricing-cards { grid-template-columns: 1fr; }
           .mockup-reservas { grid-template-columns: 1fr 1fr; }
+          .fundador-features { grid-template-columns: 1fr; }
+          .pricing-card-fundador { padding: 40px 24px 28px; }
           footer { padding: 32px 24px; }
           .footer-inner { flex-direction: column; text-align: center; }
           .cta-section { padding: 64px 24px; }
@@ -229,7 +184,6 @@ export default function Home() {
 
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
 
-      {/* Cursor glow layers */}
       <div id="cursor-glow"></div>
       <div id="cursor-glow-2"></div>
 
@@ -350,58 +304,41 @@ export default function Home() {
         </div>
       </section>
 
+      {/* PRICING — Plan Fundador */}
       <section className="pricing" id="precios">
         <div className="pricing-inner">
           <div className="reveal">
-            <span className="section-label">Planes</span>
-            <h2 className="section-title" style={{margin:'0 auto 16px'}}>Simple, sin sorpresas</h2>
-            <p className="section-sub" style={{margin:'0 auto'}}>Elige el plan que se adapta a tu negocio. Cancela cuando quieras.</p>
+            <span className="section-label">Acceso anticipado</span>
+            <h2 className="section-title" style={{margin:'0 auto 16px'}}>Únete antes que todos</h2>
+            <p className="section-sub" style={{margin:'0 auto'}}>Por tiempo limitado, accede a Agendi completamente gratis con todas las funcionalidades del plan más completo.</p>
           </div>
-          <div className="pricing-cards">
-            <div className="pricing-card reveal reveal-delay-1">
-              <div className="pricing-plan">Básico</div>
-              <div className="pricing-price">S/69</div>
-              <div className="pricing-period">/mes</div>
-              <div className="pricing-desc">Ideal para negocios que recién empiezan a automatizar sus reservas.</div>
-              <ul className="pricing-features">
-                <li className="pricing-feature">Hasta 400 reservas al mes</li>
-                <li className="pricing-feature">Especialistas y servicios ilimitados</li>
-                <li className="pricing-feature">Formulario de reservas online</li>
-                <li className="pricing-feature">Confirmación automática al cliente y al dueño por WhatsApp</li>
-                <li className="pricing-feature">Cancelación con link</li>
-                <li className="pricing-feature">Google Calendar sincronizado</li>
-                <li className="pricing-feature">Panel de administración completo</li>
-                <li className="pricing-feature">Dashboard de ingresos y métricas</li>
-              </ul>
-              <a href="#contacto" className="pricing-btn pricing-btn-outline">Empezar →</a>
+
+          <div className="pricing-card-fundador reveal">
+            <div className="fundador-badge">🎉 Plan Fundador — Acceso gratuito</div>
+            <div className="fundador-plan">Plan Fundador</div>
+            <div className="fundador-price">Gratis</div>
+            <div className="fundador-period">sin costo mensual</div>
+            <div className="fundador-limit">Hasta 300 reservas al mes</div>
+            <div className="fundador-desc">
+              Acceso completo a todas las funcionalidades de Agendi sin pagar nada. Ideal para negocios que quieren modernizar su gestión de reservas desde el primer día.
             </div>
-            <div className="pricing-card featured reveal reveal-delay-2">
-              <div className="featured-badge">Más popular</div>
-              <div className="pricing-plan">Regular</div>
-              <div className="pricing-price">S/129</div>
-              <div className="pricing-period">/mes</div>
-              <div className="pricing-desc">Para negocios en crecimiento que necesitan más control y automatización.</div>
-              <ul className="pricing-features">
-                <li className="pricing-feature">Hasta 1,200 reservas al mes</li>
-                <li className="pricing-feature">Todo lo del plan Básico</li>
-                <li className="pricing-feature">Recordatorio automático 24 horas antes</li>
-                <li className="pricing-feature">Recordatorio automático 2 horas antes</li>
-              </ul>
-              <a href="#contacto" className="pricing-btn pricing-btn-white">Empezar →</a>
-            </div>
-            <div className="pricing-card reveal reveal-delay-3">
-              <div className="pricing-plan">Pro</div>
-              <div className="pricing-price">S/229</div>
-              <div className="pricing-period">/mes</div>
-              <div className="pricing-desc">El sistema completo para negocios que quieren automatizar todo.</div>
-              <ul className="pricing-features">
-                <li className="pricing-feature">Hasta 3,000 reservas al mes</li>
-                <li className="pricing-feature">Todo lo del plan Regular</li>
-                <li className="pricing-feature">Color de marca personalizado en tu formulario</li>
-                <li className="pricing-feature">Soporte prioritario en 24h hábiles</li>
-              </ul>
-              <a href="#contacto" className="pricing-btn pricing-btn-outline">Empezar →</a>
-            </div>
+            <ul className="fundador-features">
+              <li className="fundador-feature">Formulario de reservas online personalizado</li>
+              <li className="fundador-feature">Confirmación automática por WhatsApp al cliente y al dueño</li>
+              <li className="fundador-feature">Recordatorio automático horas antes</li>
+              <li className="fundador-feature">Cancelación con link directo</li>
+              <li className="fundador-feature">Google Calendar sincronizado en tiempo real</li>
+              <li className="fundador-feature">Panel de administración completo</li>
+              <li className="fundador-feature">Dashboard de ingresos y métricas</li>
+              <li className="fundador-feature">Especialistas y servicios ilimitados</li>
+              <li className="fundador-feature">Color de marca personalizado en tu formulario</li>
+              <li className="fundador-feature">Soporte prioritario en 24h hábiles</li>
+              <li className="fundador-feature">Múltiples sucursales</li>
+            </ul>
+            <a href="#contacto" className="fundador-btn">Quiero mi acceso gratuito →</a>
+            <p className="fundador-disclaimer">
+              Disponible hasta el 30 de agosto de 2026 o al llegar a 50 negocios registrados, lo que ocurra primero.
+            </p>
           </div>
         </div>
       </section>
@@ -430,7 +367,6 @@ export default function Home() {
       </footer>
 
       <script dangerouslySetInnerHTML={{__html: `
-        // Cursor glow tracking
         const g1 = document.getElementById('cursor-glow');
         const g2 = document.getElementById('cursor-glow-2');
         document.addEventListener('mousemove', (e) => {
@@ -439,16 +375,12 @@ export default function Home() {
           g2.style.left = e.clientX + 'px';
           g2.style.top = e.clientY + 'px';
         });
-
-        // Scroll reveal
         const observer = new IntersectionObserver((entries) => {
           entries.forEach(entry => {
             if (entry.isIntersecting) entry.target.classList.add('visible');
           });
         }, { threshold: 0.1 });
         document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-        // Nav shadow on scroll
         const nav = document.querySelector('nav');
         window.addEventListener('scroll', () => {
           nav.style.boxShadow = window.scrollY > 20 ? '0 4px 24px rgba(83,74,183,0.08)' : 'none';
